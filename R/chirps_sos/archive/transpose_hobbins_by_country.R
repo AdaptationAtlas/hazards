@@ -87,18 +87,6 @@ Geom<-data.table(terra::crds(CHIRPSrast))
 colnames(PET.Year)<-Geom[,unique(x)]
 rownames(PET.Year)<-Geom[,unique(y)]
 
-# create points
-#points<-terra::vect(CellReferenceAll,c("Row","Col"),crs=terra::crs(CHIRPSrast))
-
-#Coords <- data.frame(CellReferenceAll[ , c("Col", "Row")])   # coordinates
-#Data   <- data.frame(Value=CellReferenceAll[,value])          # data
-#Crs    <- CRS("+init=epsg:4326") # proj4string of coords
-
-#points<-SpatialPointsDataFrame(coords      = Coords,
-#                               data        = Data, 
-#                               proj4string = Crs)
-#points<-st_as_sf(points)
-
 # Load map of Africa
 AfricaMap<-rworldmap::getMap(resolution = "high")
 AfricaMap<-AfricaMap[AfricaMap$REGION=="Africa"&!is.na(AfricaMap$REGION),]
@@ -110,10 +98,6 @@ AfricaMap<-terra::rasterize(AfricaMap,CHIRPSrast,field="ADMIN")
 # Convert to points
 points<-terra::as.points(AfricaMap,values=T,na.rm=F)
 
-#sf::sf_use_s2(FALSE)
-
-#points<-sf::st_join(points,AfricaMap)
-
 CellReferenceAll<-data.table(reshape2::melt(PET.Year[,,1]))
 CellReferenceAll<-CellReferenceAll[,Index:=1:nrow(CellReferenceAll)]
 setnames(CellReferenceAll,c("Var1","Var2"),c("Row","Col"))
@@ -121,6 +105,9 @@ setnames(CellReferenceAll,c("Var1","Var2"),c("Row","Col"))
 CellReferenceAll<-CellReferenceAll[,is.na:=value==-9999
                                    ][,ADMIN:=points$ADMIN
                                      ][,value:=NULL]
+
+XY<-data.table(terra::geom(terra::as.points(CHIRPSrast, values=TRUE, na.rm=F)))[,list(x,y)]
+CellReferenceAll<-cbind(CellReferenceAll,XY)
 
 
 save(CellReferenceAll,file=paste0(Save_dir2,"/CellReference.RData"))
@@ -194,6 +181,8 @@ for(COUNTRY in  Countries){
     Y<-pblapply(1:length(X[[1]]),FUN=function(i){
       unlist(lapply(X,"[[",i))
     })
+    
+    names(Y)<-names(X[[1]])
     
     save(Y,file=paste0(Save_dir2,"/",COUNTRY,".RData"),compress="gzip",compression_level=6)
     

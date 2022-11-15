@@ -222,19 +222,25 @@ SOS_RSeason<-function(RAIN,AI,S1.AI){
 }
 #' Merge sequences for a continuous series of dekadal data
 #'
-#' `SOS_SeqMerge` takes a sequence created by `SOS_RSeason` where multiple non-NA values are split by sequences of NA values and in the corresponding aridity index (`AI`) data identifies the start and end point of non-NA values split by NA sequences of length `<=MaxGap`.
+#' `SOS_SeqMerge` takes a sequence created by `SOS_RSeason` where multiple non-NA values are split by sequences of NA values and 
+#' in the corresponding aridity index (`AI`) data identifies the start and end point of non-NA values split by NA sequences of length `<=MaxGap`.
 #'  Values from the start to end points are set to the first numeric value in the sequence. Values outwith the start and end points are set to NA.
 #'  
-#'  For example `NA NA NA NA NA  2  2  2  2  2 NA  3  3  3 NA NA  4 NA NA` with `MaxVal=1` becomes `NA NA NA NA NA  2  2  2  2  2  2  2  2  2 NA NA NA NA NA NA` and with `MaxVal=2` 
+#'  For example `NA NA NA NA NA  2  2  2  2  2 NA  3  3  3 NA NA  4 NA NA` with `MaxVal=1` becomes 
+#'  `NA NA NA NA NA  2  2  2  2  2  2  2  2  2 NA NA NA NA NA NA` and with `MaxVal=2` 
 #'  becomes `NA NA NA NA NA  2  2  2  2  2  2  2  2  2  2  2  2 NA NA`.
 #'
 #' @param Seq  a vector of sequences split by NAs
 #' @param AI a logical vector the same length as `Seq` indicating whether an aridity index threshold is `TRUE` or `FALSE`
 #' @param MaxGap an integer value describing the maximum gap (number of NA values) allowed between non-NA values before the sequence breaks.
-#' @param MinStartLen an integer value describing the minimum length of first sequence block, if the first sequence is too short and too separated from the next sequence it is removed. This is to remove false starts.
-#' @param MaxStartSep an integer value describing the maximum separation of the first sequence block, if the first sequence is too short and too separated from the next sequence it is removed. This is to remove false starts.
-#' @param ClipAI logical `T/F`, if `T` then `AI` values corresponding to the last non-NA value in `Seq` are all set to `F` and the sequence is halted by the last `F` value of AI.
-#' @param S1.AI  a logical vector, when S1.AI==T then the corresponding AI value to the first value in a sequence of RAIN==T is set to `TRUE`. If `S1.AI` is set to `TRUE` in the functions that generate the `Seq` parameter it should also be set to `TRUE` here.
+#' @param MinStartLen an integer value describing the minimum length of first sequence block, if the first sequence is too short and too 
+#' separated from the next sequence it is removed. This is to remove false starts.
+#' @param MaxStartSep an integer value describing the maximum separation of the first sequence block, if the first sequence is too short and too
+#'  separated from the next sequence it is removed. This is to remove false starts.
+#' @param ClipAI logical `T/F`, if `T` then `AI` values corresponding to the last non-NA value in `Seq` are all set to `F` and the sequence is 
+#' halted by the last `F` value of AI.
+#' @param S1.AI  a logical vector, when S1.AI==T then the corresponding AI value to the first value in a sequence of RAIN==T is set to `TRUE`. 
+#' If `S1.AI` is set to `TRUE` in the functions that generate the `Seq` parameter it should also be set to `TRUE` here.
 #' @return a vector where sequences are merged across NAs and set to the first value of the series. Leading and trailing NAs remain.
 #' @export
 SOS_SeqMerge<-function(Seq,AI,MaxGap,MinStartLen,MaxStartSep,ClipAI,S1.AI){
@@ -529,3 +535,102 @@ slide_apply2 <- function (data, window, step = 1, fun)
   result<-result[c(which(!is.na(result)),which(is.na(result)))]
   return(result)
 }
+# This function takes two angles and calculates the difference between then as such we need to convert dekads 1:36 to degrees 1:360 (and back again)
+#' @export
+CicularDist<-function(Val1,Val2){
+  as.numeric(circular::dist.circular(circular::circular(c(Val1,Val2),type="angles",units = "degrees"),method="geodesic")*180/pi)
+}
+# Calculate mode
+#' @export
+getmode <- function(v,na.rm) {
+  if(na.rm){
+    v<-v[!is.na(v)]
+  }
+uniqv <- unique(v)
+uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+# Dekad to month
+#' @export
+dkd2mth<-function(x){
+  dkd<-1:36
+  mth<-rep(1:12,each=3)
+  return(mth[match(x,dkd)])
+}
+# Read raster into memory
+#' https://rdrr.io/github/rspatial/terra/src/R/read.R
+#' @export
+
+readAll <- function(x) {
+  ok <- x@ptr$readAll()
+  x <- messages(x, "readAll")
+  invisible(ok)
+}
+
+setMethod("readStart", signature(x="SpatRaster"),
+          function(x) {
+            success <- x@ptr$readStart()
+            messages(x, "readStart")
+            if (!success) error("readStart,SpatRaster", "cannot open file for reading")
+            invisible(success)
+          }
+)
+
+setMethod("readStart", signature(x="SpatRasterDataset"),
+          function(x) {
+            success <- x@ptr$readStart()
+            messages(x, "readStart")
+            if (!success) error("readStart,SpatRasterDataset", "cannot open file for reading")
+            invisible(success)
+          }
+)
+
+setMethod("readStop", signature(x="SpatRaster"),
+          function(x) {
+            success <- x@ptr$readStop()
+            messages(x, "readStop")
+            invisible(success)
+          }
+)
+
+setMethod("readStop", signature(x="SpatRasterDataset"),
+          function(x) {
+            success <- x@ptr$readStop()
+            messages(x, "readStop")
+            invisible(success)
+          }
+)
+# Terra error messages - error
+#' https://rdrr.io/github/rspatial/terra/src/R/messages.R
+#' @export
+error <- function(f, emsg="", ...) {
+  stop("[", f, "] ", emsg, ..., call.=FALSE)
+}
+# Terra error messages - warn
+#' https://rdrr.io/github/rspatial/terra/src/R/messages.R
+#' @export
+warn <- function(f, wmsg="", ...) {
+  warning("[", f, "] ", wmsg, ..., call.=FALSE)
+}
+# Terra error messages - messages
+#' https://rdrr.io/github/rspatial/terra/src/R/messages.R
+#' @export
+messages <- function(x, f="") {
+  #g <- gc(verbose=FALSE)
+  if (methods::.hasSlot(x, "ptr")) {
+    if (x@ptr$has_warning()) {
+      warn(f, paste(unique(x@ptr$getWarnings()), collapse="\n"))
+    }
+    if (x@ptr$has_error()) {
+      error(f, x@ptr$getError())
+    }
+  } else {
+    if (x$has_warning()) {
+      warn(f, paste(unique(x$getWarnings()), collapse="\n"))
+    }
+    if (x$has_error()) {
+      error(f, x$getError())
+    }
+  }
+  x
+}
+
