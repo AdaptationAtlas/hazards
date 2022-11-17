@@ -7,6 +7,18 @@ require(raster)
 require(rworldmap)
 require(rworldxtra)
 
+# Version
+version<-1
+
+
+DataDir<-"C:/Datasets"
+
+# Set directories
+CHIRPSraw_Dir<-paste0(DataDir,"/chirps_af/raw")
+CHIRPS_Dekad_Dir<-paste0(DataDir,"/chirps_af/intermediate/array_countries_dekad")
+SOS_Dir<-paste0(DataDir,"/atlas_SOS/intermediate/v",version)
+list.dirs(SOS_Dir)
+SOS_Dir<-list.dirs(SOS_Dir)[2]
 
 # Load map of Africa
 CHIRPSrast<-terra::rast(list.files(CHIRPSraw_Dir,full.names = T)[1])
@@ -17,19 +29,23 @@ AfricaMap<-sf::st_as_sf(AfricaMap)
 AfricaMap<-terra::vect(AfricaMap)
 AfricaMap<-terra::project(AfricaMap,CHIRPSrast)
 
-
+Countries<-as.character(AfricaMap$ADMIN)
+NotInHobbins<-c("Cape Verde","Mauritius","Saint Helena","Seychelles")
+Issue<-c("Djibouti","Western Sahara")
+Countries<-Countries[!Countries %in% c(NotInHobbins,Issue)]
 
 # Wrangle SOS chunks ####
-SOSFiles<-data.table(File=list.files(SaveDir,".RData",full.names = T),
+SOSFiles<-data.table(File=list.files(SOS_Dir,".RData",full.names = T),
                      Country=gsub("[.]RData","",tstrsplit(list.files(SaveDir,".RData",full.names = F),"_",keep=2)[[1]]))
 
-AnalysisDir<-paste0(SaveDir,"/Analysis")
+AnalysisDir<-paste0(SaveDir,"/explore_results")
 if(!dir.exists(AnalysisDir)){
   dir.create(AnalysisDir)
 }
 
 File<-paste0(AnalysisDir,"/SOSlist.RData")
 
+# Join LTAvg data across countries
 if(!file.exists(File)){
   SOSlist<-pblapply(1:nrow(SOSFiles),FUN=function(i){
     load(file=SOSFiles[i,File])
@@ -50,9 +66,6 @@ if(!file.exists(File)){
 
 
 gc()
-
-
-CHIRPS_Ref<-load.Rdata2(list.files(CHIRPS_Dir,"CellReference"),path=CHIRPS_Dir)
 
 
 #***************************************#
@@ -85,6 +98,11 @@ for(COUNTRY in Countries){
   suppressWarnings(SOSData1[,Seq:=stringi::stri_replace_all_regex(Seq,
                                                                   pattern=unique(Seq[!is.na(Seq)]),
                                                                   replacement=1:length(unique(Seq[!is.na(Seq)]))),by=Index])
+  
+  # Load country raster
+  CHIRPS_Ref<-terra::rast(paste0(CHIRPS_Dekad_Dir,"/",COUNTRY,".tif"))[[1]]
+  CHIRPS_Ref<-data.table(terra::as.data.frame(CHIRPS_Ref,xy=T,cells=T))[,1:3]
+  setnames(CHIRPS_Ref,"cell","Index")
   
   SOSData1<-merge(CHIRPS_Ref,SOSData1,by="Index",all.x=F)
   
@@ -194,7 +212,7 @@ for(COUNTRY in Countries){
       
     }}
   
-  SOSData[,Seasons:=sum(c(!is.na(S1),!is.na(S2)))*10,by=Index]
+  SOSData[,Seasons:=sum(c(!is.na(S1),!is.na(S2)))*1,by=Index]
   
   # Manually tidy up countries which are largely unimodal but have a few pixels that split the seasons.
   # Note: Check that correct LGP field is being used here
@@ -215,9 +233,9 @@ for(COUNTRY in Countries){
   
   # Classify systems
   SOSData[,LGPsum:=sum(c(LGP1,LGP2),na.rm=T),by=Index
-  ][Seasons==20,System:="2 WS"
-  ][Seasons==10 & MinDistN %in% c(1,2),System:="1 WS-Split"
-  ][Seasons==10 & !MinDistN %in% c(1,2),System:="1 WS"
+  ][Seasons==2,System:="2 WS"
+  ][Seasons==1 & MinDistN %in% c(1,2),System:="1 WS-Split"
+  ][Seasons==1 & !MinDistN %in% c(1,2),System:="1 WS"
   ][LGPsum>=30,System:=paste0(System,"-LGP>=30")
   ][LGPsum<=6,System:=paste0(System,"-LGP<=6")]
   
@@ -247,33 +265,34 @@ for(COUNTRY in Countries){
     Y2<-round(terra::rasterize(X,BaseRaster,field="S2"),0)
   }
   Ymax<-round(terra::rasterize(X,BaseRaster,field="Swettest"),0)
-  Yseasons<-terra::rasterize(X,BaseRaster,field="Seasons")
   
-  LGP1<-round(terra::rasterize(X,BaseRaster,field="LGP1"),0)
+  LGP_1<-round(terra::rasterize(X,BaseRaster,field="LGP1"),0)
   
-  if(!20 %in% SOSData$Seasons){
-    LGP2<-LGP1
-    LGP2[]<-NA
+  if(!2 %in% SOSData$Seasons){
+    LGP_2<-LGP_1
+    LGP_2[]<-NA
   }else{
-    LGP2<-round(terra::rasterize(X,BaseRaster,field="LGP2"),0)
+    LGP_2<-round(terra::rasterize(X,BaseRaster,field="LGP2"),0)
   }
   
   
-  plot<-c(Y1,Y2,Ymax,LGP1,LGP2,Yseasons)
+  SOS<-c(Y1,Y2,Ymax)
+  LGP<-c(LGP_1,LGP_2,sum(c(LGP_1,LGP_2),na.rm = T))
   
-  names(Ystack)<-c("SOS_1",
-                   "SOS_2",
-                   "SOS_Wettest",
-                   "LGP_1",
-                   "LGP_2",
-                   "Seasons")
+  names(SOS)<-c("SOS_1",
+                "SOS_2",
+                "SOS_Wettest")
   
+  names(LGP)<-c("LGP_1",
+                "LGP_2",
+                "LGP_sum")
   
-  Ystack2<-raster::stack(Ystack)
+  SOS2<-raster::stack(SOS)
+  LGP2<-raster::stack(LGP)
   
-  coords <- xyFromCell(Ystack2, seq_len(ncell(Ystack2)))
-  Data <- raster::stack(as.data.frame(raster::getValues(Ystack2)))
-  names(Ystack2) <- names(Ystack)
+  coords <- xyFromCell(SOS2, seq_len(ncell(SOS2)))
+  Data <- raster::stack(as.data.frame(raster::getValues(SOS2)))
+  names(SOS2) <- names(SOS)
   
   Data <- cbind(coords, Data)
   Data$values<-factor(Data$values,levels=1:36)
@@ -281,7 +300,6 @@ for(COUNTRY in Countries){
   SOSmap<-ggplot(Data) + 
     geom_tile(aes(x, y, fill = values)) +
     facet_wrap(~ ind,ncol=3) +
-    #viridis::scale_fill_viridis(option="turbo",discrete = T,drop=F) +
     scale_fill_manual(
       values=pals::kovesi.cyclic_mygbm_30_95_c78_s25(n=36),
       na.value = "transparent",
@@ -295,7 +313,23 @@ for(COUNTRY in Countries){
     guides(fill=guide_legend(nrow=3))+
     coord_equal()
   
-  # System Maps ####
+  coords <- xyFromCell(LGP2, seq_len(ncell(LGP2)))
+  Data <- raster::stack(as.data.frame(raster::getValues(LGP2)))
+  names(LGP2) <- names(LGP)
+  
+  Data <- cbind(coords, Data)
+
+  LGPmap<-ggplot(Data) + 
+    geom_tile(aes(x, y, fill = values)) +
+    facet_wrap(~ ind,ncol=3) +
+    viridis::scale_fill_viridis(option="viridis",discrete = F,direction = -1,na.value = "transparent") +
+    theme_bw()+
+    labs(fill="LGP (dekads)")+
+    theme(legend.position = "bottom",
+          axis.title = element_blank())+
+    coord_equal()
+  
+  # Seasonality Map ####
   
   Ysystem<-terra::rasterize(X,BaseRaster,field="System")
   names(Ysystem)<-"System"
@@ -305,9 +339,8 @@ for(COUNTRY in Countries){
   
   Levels<-data.table(value=sort(unique(Ysystem[!is.na(Ysystem)])),description=levels(Ysystem)[[1]])
   
-  
   Data <- data.frame(cbind(coords, Data))
-  Data$System<-Levels$description[match(Data$System,Levels$value)]
+  Data$System<-Levels$description.category[match(Data$System,Levels$value)]
   
   Ysystem<-ggplot(Data) + 
     geom_tile(aes(x, y, fill = System)) +
@@ -320,17 +353,39 @@ for(COUNTRY in Countries){
     guides(fill=guide_legend(ncol=1))+
     coord_equal()
   
-  g<-gridExtra::arrangeGrob(grobs=list(SOSmap,Ysystem),layout_matrix=matrix(c(rep(1,3),2),nrow = 1))
+  # No Seasons Map ####
+  Yseasons<-terra::rasterize(X,BaseRaster,field="Seasons")
+  names(Yseasons)<-"Seasons"
+  coords <- xyFromCell(Yseasons, seq_len(ncell(Yseasons)))
+  Data <-values(Yseasons)
+  names(Yseasons) <- names(Yseasons)
+  
+  Data <- data.frame(cbind(coords, Seasons=Data))
+  
+  Yseasons<-ggplot(Data) + 
+    geom_tile(aes(x, y, fill = as.factor(Seasons))) +
+    viridis::scale_fill_viridis(option="viridis",discrete = T,na.value="transparent",na.translate = F,direction=-1)+
+    theme_bw()+
+    labs(fill="Seasons")+
+    theme(legend.position = "bottom",
+          axis.title = element_blank(),
+          legend.direction = "vertical")+
+    guides(fill=guide_legend(ncol=1))+
+    coord_equal()
+  
+  
+  g1<-gridExtra::arrangeGrob(grobs=list(SOSmap,LGPmap),layout_matrix=matrix(rep(1:2,3),nrow = 2))
+  g2<-gridExtra::arrangeGrob(grobs=list(Yseasons,g1,Ysystem),layout_matrix=matrix(c(1,rep(2,3),3),nrow = 1))
   
   ggsave(filename = paste0(COUNTRY,".png"),
-         plot = g,
+         plot = g2,
          path = PlotDir,
-         width= 180,
+         width= 200,
          height = 100,
          units = "mm",
-         scale = 1.2,
+         scale = 1.8,
+         device=png,
          dpi = 600,
-         type = "cairo",
          bg="white")
   
 }

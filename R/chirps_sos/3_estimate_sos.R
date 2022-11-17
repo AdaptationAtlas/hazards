@@ -15,6 +15,9 @@ Cores<-10
 #DataDir<-"/home/jovyan/common_data"
 DataDir<-"C:/Datasets"
 
+# Import Functions ####
+source("R/chirps_sos/sos_functions.R")
+
 # Version
 version<-1
 
@@ -31,10 +34,6 @@ if(!dir.exists(SOS_Dir)){
 if(!dir.exists(CHIRPS_Dekad_Dir)){
   dir.create(CHIRPS_Dekad_Dir)
 }
-
-# Import Functions ####
-source("R/chirps_sos/sos_functions.R")
-
 
 # Set Parameters ####
 Debug<-F
