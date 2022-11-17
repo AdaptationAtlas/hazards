@@ -9,17 +9,17 @@ require(sp)
 options(scipen=999)
 
 #Cores<-parallel::detectCores()
-Cores<-5
+Cores<-10
 
 # Data and save locations  ####
-DataDir<-"/home/jovyan/common_data"
+#DataDir<-"/home/jovyan/common_data"
+DataDir<-"C:/Datasets"
 
 # Version
 version<-1
 
 # Set directories
 CHIRPSraw_Dir<-paste0(DataDir,"/chirps_af/raw")
-CHIRPS_Dir<-paste0(DataDir,"/chirps_af/intermediate/array_countries")
 Hobbins_Dir<-paste0(DataDir,"/hobbins_ref_et/intermediate/array_countries")
 CHIRPS_Dekad_Dir<-paste0(DataDir,"/chirps_af/intermediate/array_countries_dekad")
 SOS_Dir<-paste0(DataDir,"/atlas_SOS/intermediate/v",version)
@@ -33,8 +33,7 @@ if(!dir.exists(CHIRPS_Dekad_Dir)){
 }
 
 # Import Functions ####
-#source("R/chirps_sos/sos_functions.R")
-source("sos_functions.R")
+source("R/chirps_sos/sos_functions.R")
 
 
 # Set Parameters ####
@@ -186,7 +185,8 @@ for(COUNTRY in Countries){
   format(object.size(CLIM),units="Gb")
   
   # 2) Calculate seasonality using long-term average data only #####
-
+  print(paste("Calculating LT Avg:",COUNTRY,"-", match(COUNTRY,Countries),"/",length(Countries)))
+  
   # The below can made parallel
   CLIM.LT<-data.table::copy(CLIM)[,Rain.sum2:=slide_apply(data=Rain,window=D2.len+1,step=1,fun=sum),by=list(Index)
                                   ][,Rain.sum9:=slide_apply2(Rain,window=9,step=1,fun=sum),by=list(Index) # Rainfall over 9 dekads (3 months)
@@ -232,6 +232,7 @@ for(COUNTRY in Countries){
   
   # 3) Find wet months #####
   # This section could perhaps be moved to the SOS_Fun function?
+  print(paste("Calculating Wet Months:",COUNTRY,"-", match(COUNTRY,Countries),"/",length(Countries)))
   
   CLIM.MONTH<-CLIM[,list(Rain.M.Sum=sum(Rain)),by=list(Index,Year,Month) # Sum rainfall by month within year and site
                    ][,Rain.M.Sum3:=slide_apply2(Rain.M.Sum,window=3,step=1,fun=sum),by=list(Index) # Take 3 month rolling average of monthly rainfall
@@ -247,6 +248,7 @@ for(COUNTRY in Countries){
   CLIM<-CLIM[order(Index,Year,Dekad)]
   
   # 4) Chunk data for parallel processing #####
+  print(paste("Chunking Data:",COUNTRY,"-", match(COUNTRY,Countries),"/",length(Countries)))
   
   # Split list into chunks again based on the number of cores for parallel processing
   ChunkSize<-ceiling(CLIM[,length(unique(Index))]/Cores)
