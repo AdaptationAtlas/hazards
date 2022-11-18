@@ -501,6 +501,23 @@ CircMean <- function(m,interval,na.rm=T){
   x3 = (x2 + interval) %% interval
   return(x3)
 }
+# Calculate mean deviance from average value of circular vector of values
+#' @export
+mean_deviance<-function(data,interval=36,na.rm=T,fun="mean"){
+  data<-data[!is.na(data)]
+  if(length(data)>0){
+    a<-if(fun=="mean"){
+    CircMean(data,interval,na.rm)
+    }else{
+      getmode(data,na.rm)
+    }
+    b<-sapply(data,FUN=function(x){CicularDist(Val1=x,Val2=a)})
+    return(mean(b))
+  }else{
+    return(NA)
+  }
+  
+}
 # Applies a function to subsets of a given dataset. https://gist.github.com/stillmatic/fadfd3269b900e1fd7ee
 #' @export
 slide_apply <- function (data, window, step = 1, fun) 
@@ -671,7 +688,7 @@ SOS_Fun<-function(DATA,
   DATA<-data.table(DATA)
   
   if(Skip2==F){
-    DATA<-DATA[,list(Rain.Dekad=sum(Rain),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season) # Sum rainfall and take mean aridity, Index by dekad  (within year and rain season)
+    DATA<-DATA[,list(Rain.Dekad=sum(Rain),ETo=sum(ETo),AI=mean(AI),ETo=sum(ETo)),by=list(Index,Year,Dekad,Rain.Season) # Sum rainfall and take mean aridity, Index by dekad  (within year and rain season)
     ][,Dekad.Season:=SOS_SeasonPad(Data=Rain.Season,PadBack=PadBack,PadForward=PadForward),by=Index] # Pad rainy seasons (for growing season > 150 days)
   }
   
@@ -703,8 +720,7 @@ SOS_Fun<-function(DATA,
   ][SOS>EOS,LGP:=36-SOS+EOS # Deal with scenario where SOS is in different year to EOS
   ][SOS==EOS,c("AI.Seq","SOS","EOS"):=NA # Remove observations where SOS == EOS (sequence is length 0)
   ][Year==max(Year) & EOS==36,c("LGP","EOS"):=NA # remove EOS and LGP where EOS is the last dekad of the available data
-  ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-  ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)] # Add total rainfall for season
+  ]
   
   return(DATA)
   
@@ -750,12 +766,15 @@ SOS_Wrap<-function(DATA,
                       Skip2 = F,
                       S1.AI=S1.AI)
   
+  CLIM.Dekad[!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
+             ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
+               ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
+  
   # 2) Calculate Seasonal Values ####
   Len<-CLIM.Dekad[,length(unique(Year))]
   Seasonal<-unique(CLIM.Dekad[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,SOS,EOS,LGP,Dekad.Season,Tot.Rain)])
   Seasonal[!is.na(Dekad.Season),Seasons.Count:=.N,by=list(Index,Dekad.Season)
   ][,Season2Prop:=Seasons.Count/Len,by=Index]
-  
   
   Seasonal[,Seasons:=length(unique(Dekad.Season)),by=Index]
   
@@ -801,6 +820,11 @@ SOS_Wrap<-function(DATA,
                            AI_Seasonal = AI_Seasonal,
                            Skip2=F,
                            S1.AI=S1.AI)
+      
+      CLIM.Dekad2[!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
+      
       
       CLIM.Dekad<-rbind(CLIM.Dekad[!Index %in% Sites],CLIM.Dekad2)
     }
@@ -888,6 +912,11 @@ SOS_Wrap<-function(DATA,
                            S1.AI=S1.AI
       )
       
+      CLIM.Dekad1[!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
+      
+      
       CLIM.Dekad<-rbind(CLIM.Dekad[!Index %in% c(Sites)],CLIM.Dekad1)
       Clim.Dekad1<-NULL
     }
@@ -911,7 +940,7 @@ SOS_Wrap<-function(DATA,
     Sites<-DataNonAdjacent[,unique(Index)]
     
     if(length(Sites)>0){
-      CLIM.Dekad1<-DATA[Index %in% Sites,list(Rain.Dekad=sum(Rain),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season)]
+      CLIM.Dekad1<-DATA[Index %in% Sites,list(Rain.Dekad=sum(Rain),ETo=sum(ETo),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season)]
       
       # Merge season separation with climate data
       CLIM.Dekad1<-merge(CLIM.Dekad1,
@@ -968,6 +997,11 @@ SOS_Wrap<-function(DATA,
                            Skip2 = T,
                            S1.AI=S1.AI)
       
+      CLIM.Dekad1[!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
+      
+      
       if(F){
         CLIM.Dekad1<-CLIM.Dekad1[,Dekad.Seq:=SOS_UniqueSeq(Dekad.Season),by=Index # Sequences within sites need a unique ID
         ][,Complete:=length(Dekad)==36,by=list(Index,Year) # Calculate dekads within a year
@@ -998,7 +1032,8 @@ SOS_Wrap<-function(DATA,
         ][SOS==EOS,c("AI.Seq","SOS","EOS"):=NA # Remove observations where SOS == EOS (sequence is length 1)
         ][Year==max(Year) & EOS==36,c("LGP","EOS"):=NA # remove EOS and LGP where EOS is the last dekad of the available data
         ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-        ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)] # Add total rainfall for season
+        ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq) # Add total rainfall for season
+        ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add ETo rainfall for season
       }
       
       CLIM.Dekad<-rbind(CLIM.Dekad[!Index %in% Sites],CLIM.Dekad1)
@@ -1007,7 +1042,7 @@ SOS_Wrap<-function(DATA,
   }
   # 4.3) Calculate seasonal values #####
   
-  Seasonal2<-unique(CLIM.Dekad[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,SOS,EOS,LGP,Dekad.Season,Tot.Rain)])
+  Seasonal2<-unique(CLIM.Dekad[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,SOS,EOS,LGP,Dekad.Season,Tot.Rain,Tot.ETo)])
   # Remove second seasons that are too short
   Seasonal2<-Seasonal2[!(Dekad.Season==2 & LGP<MinLength)]
   Seasonal2<-Seasonal2[!is.na(Dekad.Season),Seasons.Count:=.N,by=list(Index,Dekad.Season)][,Season2Prop:=Seasons.Count/Len]
@@ -1085,9 +1120,10 @@ SOS_Wrap<-function(DATA,
     ][SOS==EOS,c("AI.Seq","SOS","EOS"):=NA # Remove observations where SOS == EOS (sequence is length 1)
     ][Year==max(Year) & EOS==36,c("LGP","EOS"):=NA # remove EOS and LGP where EOS is the last dekad of the available data
     ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-    ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)] # Add total rainfall for season
+    ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq) # Add total rainfall for season
+    ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add ETo rainfall for season
     
-    Seasonal3<-unique(CLIM.Dekad1[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,SOS,EOS,LGP,Dekad.Season,Tot.Rain)])
+    Seasonal3<-unique(CLIM.Dekad1[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,SOS,EOS,LGP,Dekad.Season,Tot.Rain,Tot.ETo)])
     # Remove second seasons that are too short
     Seasonal3<-Seasonal3[!(Dekad.Season==3 & LGP<MinLength)]
     Seasonal3[Dekad.Season==3,Seasons.Count:=sum(Dekad.Season==3),by=Index
@@ -1137,25 +1173,28 @@ SOS_Wrap<-function(DATA,
   
   LTAvg_SOS2<-Seasonal2[!is.na(Dekad.Season),list(Total.Seasons=.N,
                                                   SOS.mean=round(CircMean(m=SOS,interval=36,na.rm=T),1),
-                                                  SOS.median=as.numeric(median(SOS,na.rm=T)),
+                                                  SOS.mean.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean"),2),
                                                   SOS.mode=getmode(SOS,na.rm=T),
+                                                  SOS.mode.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode"),2),
                                                   SOS.min=suppressWarnings(min(SOS,na.rm=T)),
                                                   SOS.max=suppressWarnings(max(SOS,na.rm=T)),
-                                                  SOS.sd=suppressWarnings(sd(SOS,na.rm=T)),
                                                   EOS.mean=round(CircMean(m=EOS,interval=36,na.rm=T),1),
+                                                  EOS.mean.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean"),2),
                                                   EOS.mode=getmode(EOS,na.rm=T),
-                                                  EOS.median=round(median(EOS,na.rm=T),1),
+                                                  EOS.mode.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode"),2),
                                                   EOS.min=suppressWarnings(min(EOS,na.rm=T)),
                                                   EOS.max=suppressWarnings(max(EOS,na.rm=T)),
-                                                  EOS.sd=suppressWarnings(sd(EOS,na.rm=T)),
                                                   LGP.mean=round(mean(LGP,na.rm=T),1),
                                                   LGP.mode=getmode(LGP,na.rm=T),
-                                                  LGP.median=round(median(LGP,na.rm=T),1),
                                                   LGP.min=suppressWarnings(min(LGP,na.rm=T)),
                                                   LGP.max=suppressWarnings(max(LGP,na.rm=T)),
-                                                  LGP.sd=suppressWarnings(sd(LGP,na.rm=T)),
+                                                  LGP.sd=round(suppressWarnings(sd(LGP,na.rm=T)),2),
                                                   Tot.Rain.mean=round(mean(Tot.Rain,na.rm=T),1),
-                                                  Tot.Rain.sd=round(sd(Tot.Rain,na.rm=T),1),
+                                                  Tot.Rain.sd=round(sd(Tot.Rain,na.rm=T),2),
+                                                  Tot.ETo.mean=round(mean(Tot.ETo,na.rm=T),1),
+                                                  Tot.ETo.sd=round(sd(Tot.ETo,na.rm=T),2),
+                                                  Balance.mean=round(mean(Tot.Rain-Tot.ETo,na.rm=T),1),
+                                                  Balance.sd=round(sd(Tot.Rain-Tot.ETo,na.rm=T),2),
                                                   SOS.EOS.XYearEnd=round(sum(EOS[!is.na(EOS)]<SOS[!is.na(EOS)])/length(EOS[!is.na(EOS)]),2),
                                                   SOS.add15.XYearEnd=round(sum((SOS[!is.na(SOS)]+15)>36,na.rm=T)/length(SOS[!is.na(SOS)]),2)),
                         by=list(Index,Dekad.Season)]
@@ -1172,25 +1211,28 @@ SOS_Wrap<-function(DATA,
   
   LTAvg_SOS3<-Seasonal3[!is.na(Dekad.Season),list(Total.Seasons=.N,
                                                   SOS.mean=round(CircMean(m=SOS,interval=36,na.rm=T),1),
-                                                  SOS.median=as.numeric(median(SOS,na.rm=T)),
+                                                  SOS.mean.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean"),2),
                                                   SOS.mode=getmode(SOS,na.rm=T),
+                                                  SOS.mode.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode"),2),
                                                   SOS.min=suppressWarnings(min(SOS,na.rm=T)),
                                                   SOS.max=suppressWarnings(max(SOS,na.rm=T)),
-                                                  SOS.sd=suppressWarnings(sd(SOS,na.rm=T)),
                                                   EOS.mean=round(CircMean(m=EOS,interval=36,na.rm=T),1),
+                                                  EOS.mean.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean"),2),
                                                   EOS.mode=getmode(EOS,na.rm=T),
-                                                  EOS.median=round(median(EOS,na.rm=T),1),
+                                                  EOS.mode.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode"),2),
                                                   EOS.min=suppressWarnings(min(EOS,na.rm=T)),
                                                   EOS.max=suppressWarnings(max(EOS,na.rm=T)),
-                                                  EOS.sd=suppressWarnings(sd(EOS,na.rm=T)),
                                                   LGP.mean=round(mean(LGP,na.rm=T),1),
                                                   LGP.mode=getmode(LGP,na.rm=T),
-                                                  LGP.median=round(median(LGP,na.rm=T),1),
                                                   LGP.min=suppressWarnings(min(LGP,na.rm=T)),
                                                   LGP.max=suppressWarnings(max(LGP,na.rm=T)),
-                                                  LGP.sd=suppressWarnings(sd(LGP,na.rm=T)),
+                                                  LGP.sd=round(suppressWarnings(sd(LGP,na.rm=T)),2),
                                                   Tot.Rain.mean=round(mean(Tot.Rain,na.rm=T),1),
                                                   Tot.Rain.sd=round(sd(Tot.Rain,na.rm=T),1),
+                                                  Tot.ETo.mean=round(mean(Tot.ETo,na.rm=T),1),
+                                                  Tot.ETo.sd=round(sd(Tot.ETo,na.rm=T),2),
+                                                  Balance.mean=round(mean(Tot.Rain-Tot.ETo,na.rm=T),1),
+                                                  Balance.sd=round(sd(Tot.Rain-Tot.ETo,na.rm=T),2),
                                                   SOS.EOS.XYearEnd=round(sum(EOS[!is.na(EOS)]<SOS[!is.na(EOS)])/length(EOS[!is.na(EOS)]),2),
                                                   SOS.add15.XYearEnd=round(sum((SOS[!is.na(SOS)]+15)>36,na.rm=T)/length(SOS[!is.na(SOS)]),2)),
                         by=list(Index,Dekad.Season)]
