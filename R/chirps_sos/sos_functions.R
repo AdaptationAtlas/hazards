@@ -503,7 +503,7 @@ CircMean <- function(m,interval,na.rm=T){
 }
 # Calculate mean deviance from average value of circular vector of values
 #' @export
-mean_deviance<-function(data,interval=36,na.rm=T,fun="mean"){
+mean_deviance<-function(data,interval=36,na.rm=T,fun="mean",stat="mean"){
   data<-data[!is.na(data)]
   if(length(data)>0){
     a<-if(fun=="mean"){
@@ -512,12 +512,15 @@ mean_deviance<-function(data,interval=36,na.rm=T,fun="mean"){
       getmode(data,na.rm)
     }
     b<-sapply(data,FUN=function(x){CicularDist(Val1=x,Val2=a,interval=interval)})
-    return(mean(b))
+    b<-if(stat=="mean"){mean(b)}
+    b<-if(stat=="sd"){sd(b)}
+    return(b)
   }else{
     return(NA)
   }
   
 }
+
 # Applies a function to subsets of a given dataset. https://gist.github.com/stillmatic/fadfd3269b900e1fd7ee
 #' @export
 slide_apply <- function (data, window, step = 1, fun) 
@@ -1178,15 +1181,19 @@ SOS_Wrap<-function(DATA,
   
   LTAvg_SOS2<-Seasonal2[!is.na(Dekad.Season),list(Total.Seasons=.N,
                                                   SOS.mean=round(CircMean(m=SOS,interval=36,na.rm=T),1),
-                                                  SOS.mean.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean"),2),
+                                                  SOS.mean.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean",stat="mean"),2),
+                                                  SOS.mean.dev.sd=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean",stat="sd"),2),
                                                   SOS.mode=getmode(SOS,na.rm=T),
-                                                  SOS.mode.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode"),2),
+                                                  SOS.mode.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode",stat="mean"),2),
+                                                  SOS.mode.dev.sd=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode",stat="sd"),2),
                                                   SOS.min=suppressWarnings(min(SOS,na.rm=T)),
                                                   SOS.max=suppressWarnings(max(SOS,na.rm=T)),
                                                   EOS.mean=round(CircMean(m=EOS,interval=36,na.rm=T),1),
-                                                  EOS.mean.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean"),2),
+                                                  EOS.mean.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean",stat="mean"),2),
+                                                  EOS.mean.dev.sd=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean",stat="sd"),2),
                                                   EOS.mode=getmode(EOS,na.rm=T),
-                                                  EOS.mode.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode"),2),
+                                                  EOS.mode.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode",stat="mean"),2),
+                                                  EOS.mode.dev.sd=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode",stat="sd"),2),
                                                   EOS.min=suppressWarnings(min(EOS,na.rm=T)),
                                                   EOS.max=suppressWarnings(max(EOS,na.rm=T)),
                                                   LGP.mean=round(mean(LGP,na.rm=T),1),
@@ -1216,15 +1223,19 @@ SOS_Wrap<-function(DATA,
   
   LTAvg_SOS3<-Seasonal3[!is.na(Dekad.Season),list(Total.Seasons=.N,
                                                   SOS.mean=round(CircMean(m=SOS,interval=36,na.rm=T),1),
-                                                  SOS.mean.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean"),2),
+                                                  SOS.mean.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean",stat="mean"),2),
+                                                  SOS.mean.dev.sd=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean",stat="sd"),2),
                                                   SOS.mode=getmode(SOS,na.rm=T),
-                                                  SOS.mode.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode"),2),
+                                                  SOS.mode.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode",stat="mean"),2),
+                                                  SOS.mode.dev.sd=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode",stat="sd"),2),
                                                   SOS.min=suppressWarnings(min(SOS,na.rm=T)),
                                                   SOS.max=suppressWarnings(max(SOS,na.rm=T)),
                                                   EOS.mean=round(CircMean(m=EOS,interval=36,na.rm=T),1),
-                                                  EOS.mean.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean"),2),
+                                                  EOS.mean.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean",stat="mean"),2),
+                                                  EOS.mean.dev.sd=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean",stat="sd"),2),
                                                   EOS.mode=getmode(EOS,na.rm=T),
-                                                  EOS.mode.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode"),2),
+                                                  EOS.mode.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode",stat="mean"),2),
+                                                  EOS.mode.dev.sd=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode",stat="sd"),2),
                                                   EOS.min=suppressWarnings(min(EOS,na.rm=T)),
                                                   EOS.max=suppressWarnings(max(EOS,na.rm=T)),
                                                   LGP.mean=round(mean(LGP,na.rm=T),1),
