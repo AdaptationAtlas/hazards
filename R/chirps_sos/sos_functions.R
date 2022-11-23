@@ -512,9 +512,13 @@ mean_deviance<-function(data,interval=36,na.rm=T,fun="mean",stat="mean"){
       getmode(data,na.rm)
     }
     b<-sapply(data,FUN=function(x){CicularDist(Val1=x,Val2=a,interval=interval)})
-    b<-if(stat=="mean"){mean(b)}
-    b<-if(stat=="sd"){sd(b)}
-    return(b)
+    x<-if(stat=="mean"){
+      mean(b)
+    }else{
+      if(stat=="sd"){
+        sd(b)
+      }}
+    return(x)
   }else{
     return(NA)
   }
