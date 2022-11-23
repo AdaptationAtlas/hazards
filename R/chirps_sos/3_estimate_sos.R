@@ -65,7 +65,6 @@ Season2.Prop<-0.25 # Proportions of seasons the second or third seasons need to 
 MinLength<-1 # Minimum length of second or third growing season in dekads
 AI_Seasonal<-F # Calculate aridity index of each dekad on an annual basis (T) or using the long-term average across all years (F)
 RollBack<-T
-Overwrite<-F # Overwrite previous saved analysis?
 
 S1.AI<-T # Set AI to T when for the first value of sequences of RAIN == T
 
@@ -84,7 +83,6 @@ Countries<-as.character(AfricaMap$ADMIN)
 NotInHobbins<-c("Cape Verde","Mauritius","Saint Helena","Seychelles")
 Issue<-c("Djibouti","Western Sahara")
 Countries<-Countries[!Countries %in% c(NotInHobbins,Issue)]
-#Countries<-c("Kenya","Ethiopia","South Africa","Malawi","Nigeria","United Republic of Tanzania")
 
 FolderName<-paste(c(
   "S2mm",Min.Rain,
@@ -111,6 +109,8 @@ SaveDir<-paste0(SOS_Dir,"/",FolderName)
 if(!dir.exists(SaveDir)){
   dir.create(SaveDir,recursive=T)
 }
+
+Overwrite<-T # Overwrite previous saved analysis?
 
 # Loop SOS analysis over chunks ####
 for(COUNTRY in Countries){
