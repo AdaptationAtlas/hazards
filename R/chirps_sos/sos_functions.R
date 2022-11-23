@@ -495,11 +495,10 @@ OrderDekadSeq<-function(x){
 # Calculate circular mean of times
 #' @export
 CircMean <- function(m,interval,na.rm=T){
-  conv=2*pi/interval
-  x1 = Arg(mean(exp(conv*(m-1)*1i),na.rm=na.rm))
-  x2 = x1/conv
-  x3 = (x2 + interval) %% interval
-  return(x3)
+  m <- mean(exp(conv*(data[!is.na(data)])*1i))
+  m <- interval+Arg(m)/conv%%interval  ## 'direction', i.e. average month
+  m <- (m + interval) %% interval
+  return(m)
 }
 # Calculate mean deviance from average value of circular vector of values
 #' @export
@@ -507,11 +506,11 @@ mean_deviance<-function(data,interval=36,na.rm=T,fun="mean"){
   data<-data[!is.na(data)]
   if(length(data)>0){
     a<-if(fun=="mean"){
-    CircMean(data,interval,na.rm)
+      CircMean(data,interval,na.rm)
     }else{
       getmode(data,na.rm)
     }
-    b<-sapply(data,FUN=function(x){CicularDist(Val1=x,Val2=a)})
+    b<-sapply(data,FUN=function(x){CicularDist(Val1=x,Val2=a,interval=interval)})
     return(mean(b))
   }else{
     return(NA)
@@ -554,8 +553,13 @@ slide_apply2 <- function (data, window, step = 1, fun)
 }
 # This function takes two angles and calculates the difference between then as such we need to convert dekads 1:36 to degrees 1:360 (and back again)
 #' @export
-CicularDist<-function(Val1,Val2){
-  as.numeric(circular::dist.circular(circular::circular(c(Val1,Val2),type="angles",units = "degrees"),method="geodesic")*180/pi)
+CicularDist<-function(Val1,Val2,interval){
+  Max<-max(Val1,Val2)
+  Min<-min(Val1,Val2)
+  
+  m<-min(Max-Min,Min-Max+interval)
+  
+  return(m)
 }
 # Calculate mode
 #' @export
@@ -688,7 +692,7 @@ SOS_Fun<-function(DATA,
   DATA<-data.table(DATA)
   
   if(Skip2==F){
-    DATA<-DATA[,list(Rain.Dekad=sum(Rain),ETo=sum(ETo),AI=mean(AI),ETo=sum(ETo)),by=list(Index,Year,Dekad,Rain.Season) # Sum rainfall and take mean aridity, Index by dekad  (within year and rain season)
+    DATA<-DATA[,list(Rain.Dekad=sum(Rain),ETo=sum(ETo),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season) # Sum rainfall and take mean aridity, Index by dekad  (within year and rain season)
     ][,Dekad.Season:=SOS_SeasonPad(Data=Rain.Season,PadBack=PadBack,PadForward=PadForward),by=Index] # Pad rainy seasons (for growing season > 150 days)
   }
   
@@ -1141,7 +1145,7 @@ SOS_Wrap<-function(DATA,
       CLIM.Dekad.3<-rbind(CLIM.Dekad1[Index %in% Sites],CLIM.Dekad[!(Index %in% Sites & is.na(Dekad.Season))])
       
       # Update seasonal statistics
-      Seasonal3<-unique(CLIM.Dekad.3[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,Dekad.Season,SOS,EOS,LGP,Tot.Rain)])
+      Seasonal3<-unique(CLIM.Dekad.3[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,Dekad.Season,SOS,EOS,LGP,Tot.Rain,Tot.ETo)])
       Seasonal3<-Seasonal3[base::order(Index,Start.Year,Dekad.Season,decreasing=c(FALSE,FALSE,FALSE),method="radix")]
       # Remove second seasons that are too short
       Seasonal3<-Seasonal3[!(Dekad.Season %in% c(2,3) & LGP<MinLength)]
