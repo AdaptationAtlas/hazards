@@ -495,6 +495,7 @@ OrderDekadSeq<-function(x){
 # Calculate circular mean of times
 #' @export
 CircMean <- function(m,interval,na.rm=T){
+  conv <- 2*pi/36
   m <- mean(exp(conv*(data[!is.na(data)])*1i))
   m <- interval+Arg(m)/conv%%interval  ## 'direction', i.e. average month
   m <- (m + interval) %% interval
