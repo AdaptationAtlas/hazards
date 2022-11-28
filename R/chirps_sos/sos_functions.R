@@ -1056,12 +1056,14 @@ SOS_Wrap<-function(DATA,
   
   Seasonal2<-unique(CLIM.Dekad[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,SOS,EOS,LGP,Dekad.Season,Tot.Rain,Tot.ETo)])
   # Remove second seasons that are too short
-  Seasonal2<-Seasonal2[!(Dekad.Season==2 & LGP<MinLength)]
+  if(!is.na(MinLength)){
+    Seasonal2<-Seasonal2[!(Dekad.Season==2 & LGP<MinLength)]
+  }
   Seasonal2<-Seasonal2[!is.na(Dekad.Season),Seasons.Count:=.N,by=list(Index,Dekad.Season)][,Season2Prop:=Seasons.Count/Len]
   
   # Remove second seasons that are present for less than 1/3 the time of first seasons
   if(!is.na(Season2.Prop)){
-    Seasonal2<-Seasonal2[Season2Prop>Season2.Prop]
+    Seasonal2<-Seasonal2[Dekad.Season==2 & Season2Prop>Season2.Prop]
   }
   
   # How many seasons present at a site?
