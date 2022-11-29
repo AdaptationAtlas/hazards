@@ -737,6 +737,56 @@ SOS_Fun<-function(DATA,
   return(DATA)
   
 }
+# Function to add a similarity field (proportion of SOS dekads which are the same as the most frequent SOS dekads). Used in SOS_Wrap function.
+#' @export
+SameSOS<-function(SOS){
+  N<-length(SOS)
+  SOS<-SOS[!is.na(SOS)]
+  if(length(SOS)>0){
+    X<-table(SOS)
+    return(round(max(X)/N,2))
+  }else{
+    return(NA)
+  }
+}
+# Function to calculate season separation. Used in SOS_Wrap function.
+#' @export
+SeasonSpacing<-function(SOS,EOS,Dekad.Season){
+  if(length(unique(Dekad.Season))>=2){
+    Data<-unique(data.table(SOS=SOS,EOS=EOS,Dekad.Season=Dekad.Season))
+    
+    SOSEOS<-Data[!is.na(Dekad.Season),list(SOS=as.numeric(median(SOS,na.rm = T)),EOS=as.numeric(median(EOS,na.rm = T))),by=list(Dekad.Season)]
+    
+    # Difference between start season two and end season one 
+    SOS<-SOSEOS[Dekad.Season==2,SOS]
+    EOS<-SOSEOS[Dekad.Season==1,EOS]
+    if(SOS<EOS){
+      SOS<-36-EOS+1
+      EOS<-1
+    }
+    Diff.1vs2<-SOS-EOS
+    
+    # Difference between start season one and end season two
+    SOS<-SOSEOS[Dekad.Season==1,SOS]
+    EOS<-SOSEOS[Dekad.Season==2,EOS]
+    if(SOS<EOS){
+      SOS<-36-EOS+1
+      EOS<-1
+    }
+    
+    Diff.2vs1<-SOS-EOS
+    
+    Diffs<-c(Diff.1vs2,Diff.2vs1)
+    
+    Diff<-data.table(sepmin=min(Diffs)[1],sepmax=max(Diffs)[1],order=which(Diffs==min(Diffs))[1])
+    
+    
+  }else{
+    Diff<-data.table(sepmin=as.numeric(NA),sepmax=as.numeric(NA),order=as.numeric(NA))
+  }
+  
+  return(Diff)
+}
 # Create a wrapper for data.table operations
 #' @param Season2.Prop
 #' @param MinLength
@@ -792,18 +842,7 @@ SOS_Wrap<-function(DATA,
   
   # 3) Roll back SOS where SOS is fixed ####
   if(RollBack==T){
-    # Add similarity field (proportion of SOS dekads which are the same as the most frequent SOS dekads)
-    SameSOS<-function(SOS){
-      N<-length(SOS)
-      SOS<-SOS[!is.na(SOS)]
-      if(length(SOS)>0){
-        X<-table(SOS)
-        return(round(max(X)/N,2))
-      }else{
-        return(NA)
-      }
-    }
-    
+
     Seasonal[,SOSsimilarity:=SameSOS(SOS),by=list(Index,Dekad.Season)
     ][,SOSNA:=sum(is.na(SOS))/.N,by=list(Index,Dekad.Season)]
     
@@ -845,44 +884,6 @@ SOS_Wrap<-function(DATA,
   if(RollBack==T){
     # Subset data
     Data<-CLIM.Dekad[Index %in% X[Seasons==2,Index]]
-    
-    # Calculate season separation
-    SeasonSpacing<-function(SOS,EOS,Dekad.Season){
-      if(length(unique(Dekad.Season))>=2){
-        Data<-unique(data.table(SOS=SOS,EOS=EOS,Dekad.Season=Dekad.Season))
-        
-        SOSEOS<-Data[!is.na(Dekad.Season),list(SOS=as.numeric(median(SOS,na.rm = T)),EOS=as.numeric(median(EOS,na.rm = T))),by=list(Dekad.Season)]
-        
-        # Difference between start season two and end season one 
-        SOS<-SOSEOS[Dekad.Season==2,SOS]
-        EOS<-SOSEOS[Dekad.Season==1,EOS]
-        if(SOS<EOS){
-          SOS<-36-EOS+1
-          EOS<-1
-        }
-        Diff.1vs2<-SOS-EOS
-        
-        # Difference between start season one and end season two
-        SOS<-SOSEOS[Dekad.Season==1,SOS]
-        EOS<-SOSEOS[Dekad.Season==2,EOS]
-        if(SOS<EOS){
-          SOS<-36-EOS+1
-          EOS<-1
-        }
-        
-        Diff.2vs1<-SOS-EOS
-        
-        Diffs<-c(Diff.1vs2,Diff.2vs1)
-        
-        Diff<-data.table(sepmin=min(Diffs)[1],sepmax=max(Diffs)[1],order=which(Diffs==min(Diffs))[1])
-        
-        
-      }else{
-        Diff<-data.table(sepmin=as.numeric(NA),sepmax=as.numeric(NA),order=as.numeric(NA))
-      }
-      
-      return(Diff)
-    }
     
     # If order ==1 then adjacent seasons are ordered 1 then 2, if 2 vice versa
     Data[,Season.Sep.Min:=SeasonSpacing(SOS,EOS,Dekad.Season)$sepmin,by=Index
@@ -1200,8 +1201,8 @@ SOS_Wrap<-function(DATA,
                                                   EOS.mode=getmode(EOS,na.rm=T),
                                                   EOS.mode.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode",stat="mean"),2),
                                                   EOS.mode.dev.sd=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode",stat="sd"),2),
-                                                  EOS.min=suppressWarnings(min(EOS,na.rm=T)),
-                                                  EOS.max=suppressWarnings(max(EOS,na.rm=T)),
+                                                  EOS.min=suppressWarnings(min(as.integer(EOS),na.rm=T)),
+                                                  EOS.max=suppressWarnings(max(as.integer(EOS),na.rm=T)),
                                                   LGP.mean=round(mean(LGP,na.rm=T),1),
                                                   LGP.mode=getmode(LGP,na.rm=T),
                                                   LGP.min=suppressWarnings(min(LGP,na.rm=T)),
