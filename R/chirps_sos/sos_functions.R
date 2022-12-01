@@ -662,6 +662,14 @@ messages <- function(x, f="") {
   }
   x
 }
+# Remove first sequences in first 16 dekads of first year and last sequence in last 16 dekads of last year to avoid issues of seasons that are cut by the bounds of the climate data
+#' @export
+rm_edge_seq<-function(Year,Dekad,Dekad.Seq){
+  rm<-Dekad.Seq[(Year==min(Year) & Dekad<=16) | (Year==max(Year) & Dekad>16)]
+  rm<-c(min(rm,na.rm=T),max(rm,na.rm=T))
+  Dekad.Seq[Dekad.Seq %in% rm]<-NA
+  return(Dekad.Seq)
+}
 # SOS analysis function
 #' @param DATA data.frame, data.table or tibble of dekadal climate data. Must contain the fields `Index`, `Dekad`, `Year`, `Rain.Season`,`Rain`
 #' `ETo`.
@@ -699,29 +707,33 @@ SOS_Fun<-function(DATA,
   
   DATA<-data.table(DATA)
   
-  if(Skip2==F){
+  DATA<-DATA[,Complete:=length(Dekad)==36,by=list(Index,Year) # Calculate dekads within a year
+             ][Complete==T  # Remove incomplete years 
+               ][,Complete:=NULL # Tidy up
+                 ]
+  
+  if(!Skip2){
     DATA<-DATA[,list(Rain.Dekad=sum(Rain),ETo=sum(ETo),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season) # Sum rainfall and take mean aridity, Index by dekad  (within year and rain season)
     ][,Dekad.Season:=SOS_SeasonPad(Data=Rain.Season,PadBack=PadBack,PadForward=PadForward),by=Index] # Pad rainy seasons (for growing season > 150 days)
   }
   
-  DATA<-DATA[,Dekad.Seq:=SOS_UniqueSeq(Dekad.Season),by=Index # Sequences within sites need a unique ID
-  ][,Complete:=length(Dekad)==36,by=list(Index,Year) # Calculate dekads within a year
-  ][Complete==T | (Dekad %in% 34:36 & Year==min(Year)) # Remove incomplete years but keep last three dekads (when wet period start is Jan we need to look 3 dekads before this) 
-  ][,Complete:=NULL # Tidy up
-  ][,Rain.sum2:=slide_apply(Rain.Dekad,window=D2.len+1,step=1,fun=sum) # Rainfall for next two dekads
-  ][,SOSmet:=Rain.sum2>=D2.mm & Rain.Dekad>=D1.mm] # Is rainfall of current dekad >=25 and sum of next 2 dekads >=20?
-  
+  DATA[,Dekad.Seq:=SOS_UniqueSeq(Dekad.Season),by=Index # Sequences within sites need a unique ID
+        ][Year==min(Year) & Dekad<=16 & Dekad.Seq==head(Dekad.Seq[!is.na(Dekad.Seq)],1),Dekad.Seq:=NA,by=Index # Remove first sequence of first year to avoid boundary issues at the edge of the dataset timeframe
+         ][Year==max(Year) & Dekad>16 & Dekad.Seq==tail(Dekad.Seq[!is.na(Dekad.Seq)],1),Dekad.Seq:=NA,by=Index  # Remove last sequence of last year to avoid boundary issues at the edge of the dataset timeframe
+           ][,Rain.sum2:=slide_apply(Rain.Dekad,window=D2.len+1,step=1,fun=sum) # Rainfall for next two dekads
+              ][,SOSmet:=Rain.sum2>=D2.mm & Rain.Dekad>=D1.mm] # Is rainfall of current dekad >=25 and sum of next 2 dekads >=20?
+    
   if(AI_Seasonal){
-    DATA<-DATA[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad,Year)] # It may be sufficient to simply set AI.mean to AI
+    DATA[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad,Year)] # It may be sufficient to simply set AI.mean to AI
   }else{
-    DATA<-DATA[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad)] # Calculate mean aridity index for per dekad across all years
+    DATA[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad)] # Calculate mean aridity index for per dekad across all years
   }
   
-  DATA<-DATA[,AI.0.5:=AI.mean>=AI.t,by=AI.mean # Is aridity >=0.5?
-  ][!(is.na(Dekad.Season)),AI.Seq1:=SOS_RSeason(RAIN=SOSmet,AI=AI.0.5,S1.AI=S1.AI),by=list(Index,Dekad.Seq)] # Look for sequences of AI>=0.5 starting when rainfall criteria met
+  DATA[,AI.0.5:=AI.mean>=AI.t,by=AI.mean # Is aridity >=0.5?
+  ][!is.na(Dekad.Seq),AI.Seq1:=SOS_RSeason(RAIN=SOSmet,AI=AI.0.5,S1.AI=S1.AI),by=list(Index,Dekad.Seq)] # Look for sequences of AI>=0.5 starting when rainfall criteria met
   
   if(Do.SeqMerge){
-    DATA[!(is.na(Dekad.Season)),AI.Seq:=SOS_SeqMerge(Seq=AI.Seq1,AI=AI.0.5,MaxGap=MaxGap,MinStartLen=MinStartLen,MaxStartSep=MaxStartSep,ClipAI=ClipAI,S1.AI=S1.AI),by=list(Index,Dekad.Seq)]
+    DATA[!(is.na(Dekad.Seq)),AI.Seq:=SOS_SeqMerge(Seq=AI.Seq1,AI=AI.0.5,MaxGap=MaxGap,MinStartLen=MinStartLen,MaxStartSep=MaxStartSep,ClipAI=ClipAI,S1.AI=S1.AI),by=list(Index,Dekad.Seq)]
   }else{
     DATA[,AI.Seq:=AI.Seq1]
   }
@@ -731,7 +743,6 @@ SOS_Fun<-function(DATA,
   ][SOS<EOS,LGP:=EOS-SOS # Length of growing period (LGP) is SOS less EOS
   ][SOS>EOS,LGP:=36-SOS+EOS # Deal with scenario where SOS is in different year to EOS
   ][SOS==EOS,c("AI.Seq","SOS","EOS"):=NA # Remove observations where SOS == EOS (sequence is length 0)
-  ][Year==max(Year) & EOS==36,c("LGP","EOS"):=NA # remove EOS and LGP where EOS is the last dekad of the available data
   ]
   
   return(DATA)
@@ -750,7 +761,7 @@ SameSOS<-function(SOS){
   }
 }
 # Function to calculate season separation. Used in SOS_Wrap function.
-#' @export
+
 SeasonSpacing<-function(SOS,EOS,Dekad.Season){
   if(length(unique(Dekad.Season))>=2){
     Data<-unique(data.table(SOS=SOS,EOS=EOS,Dekad.Season=Dekad.Season))
@@ -788,9 +799,10 @@ SeasonSpacing<-function(SOS,EOS,Dekad.Season){
   return(Diff)
 }
 # Create a wrapper for data.table operations
-#' @param Season2.Prop
-#' @param MinLength
+#' @param Season2.Prop Proportions of seasons the second or third seasons need to be present so that they are included in outputs.
+#' @param MinLength Minimum length of second or third growing season in dekads
 #' @param RollBack
+#' @param SOSSimThresh When rolling back what is the similarity threshold for SOS in the site time series that needs to be exceeded? e.g. 0.95 = 95% of site need to have the same SOS for the rollback logic to be applied.
 #' @export
 SOS_Wrap<-function(DATA,
                    D1.mm=25,
@@ -808,7 +820,8 @@ SOS_Wrap<-function(DATA,
                    MinLength=4,
                    AI_Seasonal=F,
                    RollBack=F,
-                   S1.AI=T){
+                   S1.AI=T,
+                   SOSSimThresh=0.95){
   
   # 1) First pass analysis ####
   
@@ -833,7 +846,7 @@ SOS_Wrap<-function(DATA,
                ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
   
   # 2) Calculate Seasonal Values ####
-  Len<-CLIM.Dekad[,length(unique(Year))]
+  Len<-CLIM.Dekad[,length(unique(Year))]-1 # Minus 1 because we skip 1/2 of min(year) and max(year)
   Seasonal<-unique(CLIM.Dekad[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,SOS,EOS,LGP,Dekad.Season,Tot.Rain)])
   Seasonal[!is.na(Dekad.Season),Seasons.Count:=.N,by=list(Index,Dekad.Season)
   ][,Season2Prop:=Seasons.Count/Len,by=Index]
@@ -848,7 +861,7 @@ SOS_Wrap<-function(DATA,
     
     
     # Subset to very similar planting dates and sites where NAs are not frequent
-    X<-unique(Seasonal[SOSsimilarity>0.95 & SOSNA<0.2,list(Index,Dekad.Season,Seasons)])
+    X<-unique(Seasonal[SOSsimilarity>SOSSimThresh & SOSNA<0.2,list(Index,Dekad.Season,Seasons)])
   }
   # 3.1) Scenario 1: SOS fixed and one season present #####
   # This is a simple case of rolling back the one season
@@ -1062,9 +1075,9 @@ SOS_Wrap<-function(DATA,
   }
   Seasonal2<-Seasonal2[!is.na(Dekad.Season),Seasons.Count:=.N,by=list(Index,Dekad.Season)][,Season2Prop:=Seasons.Count/Len]
   
-  # Remove second seasons that are present for less than 1/3 the time of first seasons
+  # Remove second seasons that are present for less than a specified proportion the time
   if(!is.na(Season2.Prop)){
-    Seasonal2<-Seasonal2[Dekad.Season==2 & Season2Prop>Season2.Prop]
+    Seasonal2<-Seasonal2[!(Dekad.Season==2 & Season2Prop<=Season2.Prop)]
   }
   
   # How many seasons present at a site?
@@ -1073,7 +1086,7 @@ SOS_Wrap<-function(DATA,
   # What is the similarity of SOS within the site?
   Seasonal2[,SOSsimilarity:=SameSOS(SOS),by=list(Index,Dekad.Season)]
   
-  X1<-unique(Seasonal2[SOSsimilarity>0.95,list(Index,Dekad.Season,Seasons)]) # Redundant?
+  X1<-unique(Seasonal2[SOSsimilarity>SOSSimThresh,list(Index,Dekad.Season,Seasons)]) # Redundant?
   
   # 4.4) Add separation #####
   CLIM.Dekad[!(is.na(EOS)|is.na(SOS)|is.na(Dekad.Season)),Season.Sep.Min:=SeasonSpacing(SOS,EOS,Dekad.Season)$sepmin,by=Index
@@ -1144,9 +1157,9 @@ SOS_Wrap<-function(DATA,
     Seasonal3[Dekad.Season==3,Seasons.Count:=sum(Dekad.Season==3),by=Index
     ][,Season3Prop:=Seasons.Count/Len,by=Index]
     
-    # Remove third seasons that are present for less than 1/3 of the time 
+    # Remove third seasons that are present for less than a specified proportion of the time 
     if(!is.na(Season2.Prop)){
-      Seasonal3<-Seasonal3[Season3Prop>Season2.Prop]
+      Seasonal3<-Seasonal3[!(Dekad.Season==3 & Season3Prop<=Season2.Prop)]
     }
     
     if(nrow(Seasonal3)>0){
