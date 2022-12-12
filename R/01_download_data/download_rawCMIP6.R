@@ -12,11 +12,14 @@ library(loadeR)
 library(climate4R.UDG) 
 library(transformeR)
 library(downscaleR)
-library(climate4R.indices)
 library(visualizeR)
 library(rgdal)
 library(tidyverse)
 library(terra)
+
+#working directory
+wd <- "~/common_data/esfg_cmip6"
+if (!file.exists(wd)) {dir.create(wd)}
 
 #data extraction requirements
 lons <- c(-23, 59)  # Africa
