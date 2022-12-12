@@ -55,4 +55,9 @@ CHIRTS_data <- function(vars=c("RH", "Tmax", "Tmin"), years=1983:2016, basedir="
   return(file_tb)
 }
 
+#run function
+#out_table <- CHIRTS_data(vars=c("RH", "Tmax", "Tmin"), 
+#                         years=1983:2016, 
+#                         basedir="~/common_data/chirts")
+
 
