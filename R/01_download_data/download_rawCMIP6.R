@@ -70,6 +70,10 @@ downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="
     
     #write file
     terra::writeRaster(r_his, filename=fname_his)
+    
+    #clean up
+    rm(data_rcp)
+    gc(verbose=FALSE, full=TRUE)
   } else {
     cat("historical data already exists, loading\n")
     r_his <- terra::rast(fname_his)
@@ -88,6 +92,10 @@ downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="
     
     #write file
     terra::writeRaster(r_rcp, filename=fname_rcp)
+    
+    #clean up
+    rm(data_rcp)
+    gc(verbose=FALSE, full=TRUE)
   } else {
     cat("rcp data already exists, loading\n")
     r_rcp <- terra::rast(fname_rcp)
@@ -107,6 +115,8 @@ for (i in 1:length(dataset_list)) {
                                   lons=c(-23, 59), 
                                   lats=c(-37, 40), 
                                   basedir=wd)
+      rm(cmip6_data)
+      gc(verbose=FALSE, full=TRUE)
     }
   }
 }
