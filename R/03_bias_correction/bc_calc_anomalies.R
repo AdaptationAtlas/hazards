@@ -65,7 +65,7 @@ calc_climatology <- function(data_file, period, sce_lab, gcm_name, varname, mth_
       #i <- 1
       mth <- month_df$month[i]
       yr <- month_df$year[i]
-      cat("processing i=", i, "/ year=", yr, "/ month=", mth, "\n")
+      #cat("processing i=", i, "/ year=", yr, "/ month=", mth, "\n")
       tdates <- date_df %>%
         dplyr::filter(year==yr, month==mth)
       
@@ -90,7 +90,7 @@ calc_climatology <- function(data_file, period, sce_lab, gcm_name, varname, mth_
     r_clm <- c()
     for (i in 1:12) {
       #i <- 1
-      cat("processing month i=", i, "\n")
+      #cat("processing month i=", i, "\n")
       tdates <- month_df %>%
         dplyr::filter(month==i)
       
@@ -122,13 +122,14 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
     r_anom <- c()
     for (i in 1:12) {
       #i <- 1
-      cat("processing month i=", i, "\n")
+      cat("processing interpolation for month i=", i, "\n")
       
       #get climatology rasters
       avg_fut <- rcp_clm[[i]]
       avg_his <- his_clm[[i]]
       
       #calculate anomaly
+      cat("calculating anomaly...\n")
       if (varname %in% c('tasmax','tasmin','tas')) {
         anom <- avg_fut - avg_his
       } else {
@@ -156,12 +157,18 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
       anomalies_values <- unique(crds[,'mean'])
       
       #fit tps interpolation model
+      cat("fitting thin plate spline\n")
       tps  <- fields::Tps(x = crds[,c('x','y')], Y = crds[,'mean'])
       
       #interpolate
+      cat("interpolating onto the reference raster\n")
       intp <- raster::interpolate(raster::raster(ref), tps)
       intp <- terra::rast(intp) %>% terra::mask(mask = ref)
       names(intp) <- paste0(sprintf("%02.0f",i))
+      
+      #clean-up
+      rm(tps)
+      gc(verbose=FALSE, full=TRUE)
       
       #append
       r_anom <- c(r_anom, intp)
@@ -179,8 +186,8 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 
 ####
 #loop rcp, variables, and period for given gcm
-gcm_i <- 1
-for (rcp in c("ssp126", "ssp245", "ssp370", "ssp585")) {
+gcm_i <- 2
+for (rcp in c("ssp245", "ssp585", "ssp126", "ssp370")) {
   for (varname in c("tas", "tasmin", "tasmax", "pr")) {
     for (futperiod in c("near", "mid")) {
       #rcp <- "ssp245"; varname <- "tasmin"; futperiod <- "mid"

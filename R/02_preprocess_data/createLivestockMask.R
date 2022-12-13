@@ -4,14 +4,17 @@
 #load packages
 library(terra)
 library(tidyverse)
-library(sf)
+
+#clean-up environment
+rm(list=ls())
+gc(verbose=FALSE, full=TRUE, reset=TRUE)
 
 #working directory
 wd <- "~/common_data/atlas_hazards/livestock_mask"
 if (!file.exists(wd)) {dir.create(wd)}
 
 #read Africa shapefile
-shp <- st_read("~/common_data/atlas_hazards/roi/africa.gpkg")
+r_msk <- terra::rast("~/common_data/atlas_hazards/roi/africa.tif")
 
 #first list all VoP individual species files
 lstk_dir <- "~/common_data/atlas_livestock/raw"
@@ -19,7 +22,7 @@ lstk_files <- list.files(lstk_dir, pattern="\\.tif")
 
 #load them as raster
 lstk_rs <- terra::rast(paste0(lstk_dir,"/",lstk_files)) %>%
-  terra::crop(., shp)
+  terra::crop(., r_msk)
 lstk_rs <- terra::app(lstk_rs, fun=sum, na.rm=TRUE)
 lstk_rs[lstk_rs[] == 0] <- NA
 

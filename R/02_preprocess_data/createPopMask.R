@@ -4,23 +4,26 @@
 #load packages
 library(terra)
 library(tidyverse)
-library(sf)
+
+#clean-up environment
+rm(list=ls())
+gc(verbose=FALSE, full=TRUE, reset=TRUE)
 
 #working directory
 wd <- "~/common_data/atlas_hazards/population_mask"
 if (!file.exists(wd)) {dir.create(wd)}
 
 #read Africa shapefile
-shp <- st_read("~/common_data/atlas_hazards/roi/africa.gpkg")
+r_msk <- terra::rast("~/common_data/atlas_hazards/roi/africa.tif")
 
 #load population raster
 pop_rs <- terra::rast("~/common_data/atlas_pop/raw/cell5m_afripop2020_urbanrural_ssa_popheadcount_total.tif") %>%
-  terra::crop(., shp)
+  terra::crop(., r_msk)
 pop_rs[pop_rs[] == 0] <- NA
 
 #resample resulting raster into CHIRPS resolution, use nn
 chirps_rs <- terra::rast("~/common_data/chirps_wrld/chirps-v2.0.1995.01.01.tif") %>%
-  terra::crop(., shp)
+  terra::crop(., r_msk)
 chirps_rs[chirps_rs[]<0] <- NA
 chirps_rs[!is.na(chirps_rs[])] <- 1
 pop_rs <- terra::resample(pop_rs, chirps_rs, method="bilinear")
