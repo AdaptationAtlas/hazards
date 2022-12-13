@@ -104,6 +104,7 @@ downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="
 }
 
 #run function
+options(java.parameters = "-Xmx20000m")
 for (i in 1:length(dataset_list)) {
   for (scenario in c("ssp126", "ssp245", "ssp370", "ssp585")) {
     for (varname in c("tas", "tasmin", "tasmax", "pr")) {
@@ -117,6 +118,7 @@ for (i in 1:length(dataset_list)) {
                                   basedir=wd)
       rm(cmip6_data)
       gc(verbose=FALSE, full=TRUE)
+      .jcall("java/lang/System", method = "gc")
     }
   }
 }
