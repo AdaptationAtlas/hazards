@@ -1,6 +1,9 @@
 #download CMIP6 data from UDG mirror, using UDG tools
 #JRV, Dec 2022
 
+#java headspace
+options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx8192m"))
+
 #load libraries
 library(devtools)
 library(loadeR) 
@@ -104,7 +107,7 @@ downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="
 }
 
 #run function
-options(java.parameters = "-Xmx20000m")
+#options(java.parameters = "-Xmx20000m")
 for (i in 1:length(dataset_list)) {
   for (scenario in c("ssp126", "ssp245", "ssp370", "ssp585")) {
     for (varname in c("tas", "tasmin", "tasmax", "pr")) {
