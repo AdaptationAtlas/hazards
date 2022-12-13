@@ -8,13 +8,12 @@
 g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(if(!require(pacman)){install.packages('pacman');library(pacman)} else {library(pacman)})
-if(!require(devtools)){install.packages("devtools")}
-if(!require(ecmwfr)){devtools::install_github("bluegreen-labs/ecmwfr")}
-suppressMessages(pacman::p_load(tidyverse,parallel))
+suppressMessages(pacman::p_load(tidyverse,parallel,ecmwfr))
+options(keyring_backend = "file")
 
 # credentials
-UID = "129570"
-key = "a2dd82bf-3cd2-4216-9f8f-610a2409e349"
+UID = "63618"
+key = "0168398e-3f9f-4a6a-9430-01d176e61e90"
 
 # save key for CDS
 ecmwfr::wf_set_key(user = UID,
@@ -84,17 +83,16 @@ for (i in 1:nrow(qq)){
 }
 
 # unzip
-zz <- list.files(datadir, ".zip$", full.names = TRUE)
-
+zz <- list.files(datadir, ".zip$", full.names = T)
 vars <- c("solar_radiation_flux")
 
 extractNC <- function(var, zz, datadir, ncores = 1){
   z <- grep(var, zz, value = TRUE)
-  fdir <- file.path(dirname(datadir), var)
+  fdir <- file.path(datadir, var)
   dir.create(fdir, showWarnings = FALSE, recursive = TRUE)
   parallel::mclapply(z, function(x){unzip(x, exdir = fdir)}, mc.cores = ncores, mc.preschedule = FALSE)
   return(NULL)
-} 
+}
 
 for(var in vars){
   extractNC(var, zz, datadir, ncores = 1)

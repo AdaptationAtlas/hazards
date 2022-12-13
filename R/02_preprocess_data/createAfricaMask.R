@@ -6,7 +6,7 @@
 g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(if(!require(pacman)){install.packages('pacman');library(pacman)} else {library(pacman)})
-suppressMessages(pacman::p_load(tidyverse,terra,sp,geodata,rnaturalearthdata,rnaturalearth))
+suppressMessages(pacman::p_load(tidyverse,raster,terra,sp,geodata,rnaturalearthdata,rnaturalearth))
 
 # Root directory
 root <- '/home/jovyan/common_data/atlas_hazards'
@@ -36,3 +36,9 @@ if(!file.exists(tif)){
   ref <- terra::rasterize(afrc, ref)
   terra::writeRaster(ref, tif)
 }
+
+# Increase extent in the northern area
+r <- terra::rast(tif)
+r <- terra::extend(x = r, y = terra::ext(c(-25.3499976955354, 57.8000035434961,
+                                            -46.9500014446676, 40)))
+terra::writeRaster(r, tif, overwrite = T)
