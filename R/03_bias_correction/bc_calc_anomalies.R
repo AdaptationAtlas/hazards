@@ -182,50 +182,51 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 gcm_i <- 1
 for (rcp in c("ssp126", "ssp245", "ssp370", "ssp585")) {
   for (varname in c("tas", "tasmin", "tasmax", "pr")) {
-    for (futperiod in c("near", "mid"))
-    #rcp <- "ssp245"; varname <- "pr"; futperiod <- "near"
-    cat("processing rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")
-    
-    #define historical and future periods
-    his_period <- 1995:2014
-    if (futperiod == "near") {rcp_period <- 2021:2040}
-    if (futperiod == "mid") {rcp_period <- 2051:2060}
-    
-    #data files
-    his_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_historical_r1i1p1f1_", varname, "_Africa_daily.tif")
-    rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily.tif")
-    
-    #historical climatology
-    his_clm <- calc_climatology(data_file=his_file, 
-                                period=his_period, 
-                                sce_lab="historical",
-                                gcm_name=gcm_list[gcm_i],
-                                varname=varname,
-                                mth_dir=mth_dir,
-                                clm_dir=clm_dir)$climatology
-    
-    #future climatology
-    rcp_clm <- calc_climatology(data_file=rcp_file, 
-                                period=rcp_period, 
-                                sce_lab=rcp,
-                                gcm_name=gcm_list[gcm_i],
-                                varname=varname,
-                                mth_dir=mth_dir,
-                                clm_dir=clm_dir)$climatology
-    
-    #reference CHIRPS/CHIRTS raster
-    r_ref <- terra::rast("~/common_data/chirts/Tmax/1995/Tmax.1995.01.01.tif")
-    r_ref <- r_ref %>% terra::crop(terra::ext(his_clm), snap = 'out')
-    r_ref[r_ref[] < -9990] <- NA
-    
-    #interpolate anomalies
-    rcp_anom <- intp_anomalies(his_clm=his_clm, 
-                               rcp_clm=rcp_clm, 
-                               anom_dir=anom_dir, 
-                               ref=r_ref,
-                               gcm_name=gcm_list[gcm_i], 
-                               rcp=rcp, 
-                               varname=varname, 
-                               period=rcp_period)
+    for (futperiod in c("near", "mid")) {
+      #rcp <- "ssp245"; varname <- "tasmin"; futperiod <- "mid"
+      cat("processing rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")
+      
+      #define historical and future periods
+      his_period <- 1995:2014
+      if (futperiod == "near") {rcp_period <- 2021:2040}
+      if (futperiod == "mid") {rcp_period <- 2041:2060}
+      
+      #data files
+      his_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_historical_r1i1p1f1_", varname, "_Africa_daily.tif")
+      rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily.tif")
+      
+      #historical climatology
+      his_clm <- calc_climatology(data_file=his_file, 
+                                  period=his_period, 
+                                  sce_lab="historical",
+                                  gcm_name=gcm_list[gcm_i],
+                                  varname=varname,
+                                  mth_dir=mth_dir,
+                                  clm_dir=clm_dir)$climatology
+      
+      #future climatology
+      rcp_clm <- calc_climatology(data_file=rcp_file, 
+                                  period=rcp_period, 
+                                  sce_lab=rcp,
+                                  gcm_name=gcm_list[gcm_i],
+                                  varname=varname,
+                                  mth_dir=mth_dir,
+                                  clm_dir=clm_dir)$climatology
+      
+      #reference CHIRPS/CHIRTS raster
+      r_ref <- terra::rast("~/common_data/chirts/Tmax/1995/Tmax.1995.01.01.tif")
+      r_ref <- r_ref %>% terra::crop(terra::ext(his_clm), snap = 'out')
+      r_ref[r_ref[] < -9990] <- NA
+      
+      #interpolate anomalies
+      rcp_anom <- intp_anomalies(his_clm=his_clm, 
+                                 rcp_clm=rcp_clm, 
+                                 anom_dir=anom_dir, 
+                                 ref=r_ref,
+                                 gcm_name=gcm_list[gcm_i], 
+                                 rcp=rcp, 
+                                 varname=varname, 
+                                 period=rcp_period)
+    }
   }
 }
