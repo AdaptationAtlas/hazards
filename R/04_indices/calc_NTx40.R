@@ -1,4 +1,4 @@
-## Number of dry days
+## Heat stress generic crop (NTx40)
 ## By: H. Achicanoy
 ## December, 2022
 
@@ -12,12 +12,12 @@ root <- '/home/jovyan/common_data'
 
 ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 
-# Load daily precipitation
-pr_pth <- paste0(root,'/chirps_wrld')
+# Load daily maximum temperature
+tx_pth <- paste0(root,'/chirts/Tmax')
 
-# Calculate NDD function
-calc_ndd <- function(yr, mn){
-  outfile <- paste0(root,'/atlas_hazards/indices/historic/NDD/NDD-',yr,'-',mn,'.tif')
+# Calculate NTx40 function
+calc_ntx40 <- function(yr, mn){
+  outfile <- paste0(root,'/atlas_hazards/indices/historic/NTx40/NTx40-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
@@ -25,15 +25,14 @@ calc_ndd <- function(yr, mn){
     # Sequence of dates
     dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
     # Files
-    fls <- paste0(pr_pth,'/chirps-v2.0.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
+    fls <- paste0(tx_pth,'/',yr,'/Tmax.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
     fls <- fls[file.exists(fls)]
     # Read precipitation data
-    prc <- terra::rast(fls)
-    prc <- prc %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
-    prc[prc == -9999] <- NA
-    # Calculate number of dry days
-    terra::app(x   = prc,
-               fun = function(x){ ndd = sum(x < 1, na.rm = T); return(ndd) },
+    tmx <- terra::rast(fls)
+    tmx <- tmx %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+    # Calculate heat stress generic crop
+    terra::app(x   = tmx,
+               fun = function(x){ ntx40 = sum(x > 40, na.rm = T); return(ntx40) },
                filename = outfile)
   }
 }
@@ -48,4 +47,4 @@ stp <- stp %>%
   base::as.data.frame()
 
 1:nrow(stp) %>%
-  purrr::map(.f = function(i){calc_ndd(yr = stp$yrs[i], mn = stp$mns[i])})
+  purrr::map(.f = function(i){calc_ntx40(yr = stp$yrs[i], mn = stp$mns[i])})
