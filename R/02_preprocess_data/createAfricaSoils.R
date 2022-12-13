@@ -105,7 +105,9 @@ soilcap_calc <- function(x, y, rdepth=60, minval, maxval) {
 }
 
 # Get root depth per pixel
-soil_data2$rdepth <- terra::extract(x = sdp, y = base::as.data.frame(soil_data2[,c('x','y')]))
+rdepths <- terra::extract(x = sdp, y = base::as.data.frame(soil_data2[,c('x','y')]))
+names(rdepths)[2] <- 'rdepth'
+soil_data2$rdepth <- rdepths$rdepth; rm(rdepths)
 
 soil_data4 <- soil_data2 %>%
   dplyr::group_by(id) %>%
