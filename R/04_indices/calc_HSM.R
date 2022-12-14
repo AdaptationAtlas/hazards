@@ -20,12 +20,20 @@ r_ref <- terra::rast(paste0(wd,'/atlas_hazards/roi/africa.tif'))
 tx_dir <- paste0(wd, "/chirts/Tmax")
 
 # Calculate NTx40 function
-calc_hsm_thr <- function(yr, mn, thr){
+calc_hsm <- function(yr, mn, thr, allyear=FALSE){
   #yr <- 1995
-  #mn <- 01
+  #mn <- '02'
   #thr <- 35
-  outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historic/HSM_NTx", thr, "/NTx", thr, "-", yr, "-", mn, ".tif")
+  #give a file name
+  if (allyear) {
+    outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historic/HSM_NTx", thr, "/AllYear_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
+  } else {
+    outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historic/HSM_NTx", thr, "/GSeason_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
+  }
+  
+  #process only if file exists
   if (!file.exists(outfile)) {
+    #if directory doesnt exist, create it
     if (!file.exists(dirname(outfile))) dir.create(dirname(outfile), recursive=TRUE)
     
     # Last day of the month
@@ -50,16 +58,50 @@ calc_hsm_thr <- function(yr, mn, thr){
     names(tmx) <- tdates
     
     #calculate stack with day number
-    tmx_doy <- terra::app(x=tmx[[1:10]], fun=function(x) {
-      rout <- x; rout[!is.na(x[])] <- yday(as.Date(names(x))); return(rout)
-      })
+    tmx_doy <- tmx
+    for (.x in 1:terra::nlyr(tmx)) {
+      tmx_doy[[.x]][!is.na(tmx[[.x]][])] <- yday(as.Date(names(tmx[[.x]])))
+    }
     
-    # Read crop calendar data
-    r_cal <- terra::rast(paste0(wd, "/atlas_crop_calendar/intermediate/mai_rf_ggcmi_crop_calendar_phase3_v1.01_Africa.tif"))
+    # Read crop calendar data, if needed. Otherwise generate an all-year calendar
+    if (allyear) {
+      rc1 <- rc2 <- terra::rast(r_ref)
+      rc1[!is.na(r_ref[])] <- 1
+      rc2[!is.na(r_ref[])] <- 366
+      r_cal <- c(rc1, rc2)
+      rm(list=c("rc1", "rc2"))
+    } else {
+      r_cal <- terra::rast(paste0(wd, "/atlas_crop_calendar/intermediate/mai_rf_ggcmi_crop_calendar_phase3_v1.01_Africa.tif"))
+    }
+    
+    #calculate heat stress day yes/no
+    r_hsm <- c()
+    for (.x in 1:terra::nlyr(tmx)) {
+      #determine if pixels exceed threshold
+      rx <- terra::app(tmx[[.x]], fun=function(x) {ifelse(x >= thr, 1, 0)})
+      
+      #append layers together for lapp
+      rx <- c(rx, tmx_doy[[.x]], r_cal[[1]], r_cal[[2]])
+      
+      #now determine if that day is in season
+      ry <- terra::lapp(rx, fun=function(tt, doy, pd, md) {
+        tout <- ifelse(md > pd, #normal season
+                       ifelse(doy >= pd & doy <= md, #we are in season
+                              ifelse(tt == 1, 1, 0), 0), #it is a hot day
+                       ifelse(md < pd, #season starts and ends in diff. years
+                              ifelse(doy <= md | doy >= pd, #we are not in season
+                                     ifelse(tt == 1, 1, 0), 0), 0)) #it is a hot day
+        return(tout)
+      })
+      
+      #append
+      r_hsm <- c(r_hsm, ry)
+    }
+    r_hsm <- terra::rast(r_hsm)
     
     # Calculate heat stress generic crop
-    terra::app(x   = tmx,
-               fun = function(x){ ntx40 = sum(x > 40, na.rm = T); return(ntx40) },
+    terra::app(x   = r_hsm,
+               fun = sum, na.rm=TRUE,
                filename = outfile)
   }
 }
@@ -74,4 +116,7 @@ stp <- stp %>%
   base::as.data.frame()
 
 1:nrow(stp) %>%
-  purrr::map(.f = function(i){calc_ntx40(yr = stp$yrs[i], mn = stp$mns[i])})
+  purrr::map(.f = function(i){calc_hsm(yr = stp$yrs[i], 
+                                       mn = stp$mns[i],
+                                       thr = 35,
+                                       allyear = FALSE)})
