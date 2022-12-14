@@ -26,7 +26,7 @@ sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux') # Solar radiation
 
 # Calculate NDWS function
 calc_ndws <- function(yr, mn){
-  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historic/NDWS/NDWS-',yr,'-',mn,'.tif')
+  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDWS/NDWS-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month

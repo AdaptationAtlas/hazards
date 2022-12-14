@@ -19,7 +19,7 @@ tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
 
 # Calculate TAI function
 calc_tai <- function(yr){
-  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historic/TAI/TAI-',yr,'.tif')
+  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TAI/TAI-',yr,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Sequence of dates

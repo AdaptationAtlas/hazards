@@ -26,9 +26,9 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
   #thr <- 35
   #give a file name
   if (allyear) {
-    outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historic/HSM_NTx", thr, "/AllYear_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
+    outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historical/HSM_NTx", thr, "/AllYear_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
   } else {
-    outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historic/HSM_NTx", thr, "/GSeason_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
+    outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historical/HSM_NTx", thr, "/GSeason_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
   }
   cat(outfile, "\n")
   

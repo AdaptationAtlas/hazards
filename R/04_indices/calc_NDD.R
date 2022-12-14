@@ -17,7 +17,7 @@ pr_pth <- paste0(root,'/chirps_wrld')
 
 # Calculate NDD function
 calc_ndd <- function(yr, mn){
-  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historic/NDD/NDD-',yr,'-',mn,'.tif')
+  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDD/NDD-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month

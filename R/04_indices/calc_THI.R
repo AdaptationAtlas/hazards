@@ -17,9 +17,9 @@ rh_pth <- paste0(root,'/chirts/RHum') # Relative humidity
 
 # Calculate THI function
 calc_thi <- function(yr, mn){
-  outfile1 <- paste0(root,'/atlas_hazards/cmip6/indices/historic/THI/THI_mean-',yr,'-',mn,'.tif')
-  outfile2 <- paste0(root,'/atlas_hazards/cmip6/indices/historic/THI/THI_max-',yr,'-',mn,'.tif')
-  outfile3 <- paste0(root,'/atlas_hazards/cmip6/indices/historic/THI/daily/THI_daily-',yr,'-',mn,'.tif')
+  outfile1 <- paste0(root,'/atlas_hazards/cmip6/indices/historical/THI/THI_mean-',yr,'-',mn,'.tif')
+  outfile2 <- paste0(root,'/atlas_hazards/cmip6/indices/historical/THI/THI_max-',yr,'-',mn,'.tif')
+  outfile3 <- paste0(root,'/atlas_hazards/cmip6/indices/historical/THI/daily/THI_daily-',yr,'-',mn,'.tif')
   file.exists(c(outfile1,outfile2,outfile3))
   if(sum(file.exists(c(outfile1,outfile2,outfile3))) < 3){
     dir.create(dirname(outfile3),F,T)

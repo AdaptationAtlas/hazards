@@ -18,9 +18,9 @@ rh_pth <- paste0(root,'/chirts/RHum') # Relative humidity
 
 # Calculate HSH function
 calc_hsh <- function(yr, mn){
-  outfile1 <- paste0(root,'/atlas_hazards/cmip6/indices/historic/HSH/HSH_mean-',yr,'-',mn,'.tif')
-  outfile2 <- paste0(root,'/atlas_hazards/cmip6/indices/historic/HSH/HSH_max-',yr,'-',mn,'.tif')
-  outfile3 <- paste0(root,'/atlas_hazards/cmip6/indices/historic/HSH/daily/HSH_daily-',yr,'-',mn,'.tif')
+  outfile1 <- paste0(root,'/atlas_hazards/cmip6/indices/historical/HSH/HSH_mean-',yr,'-',mn,'.tif')
+  outfile2 <- paste0(root,'/atlas_hazards/cmip6/indices/historical/HSH/HSH_max-',yr,'-',mn,'.tif')
+  outfile3 <- paste0(root,'/atlas_hazards/cmip6/indices/historical/HSH/daily/HSH_daily-',yr,'-',mn,'.tif')
   file.exists(c(outfile1,outfile2,outfile3))
   if(sum(file.exists(c(outfile1,outfile2,outfile3))) < 3){
     dir.create(dirname(outfile3),F,T)

@@ -17,7 +17,7 @@ tx_pth <- paste0(root,'/chirts/Tmax')
 
 # Calculate NTx function
 calc_ntx <- function(yr, mn, thr=40){
-  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historic/NTx',thr,'/NTx',thr,'-',yr,'-',mn,'.tif')
+  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NTx',thr,'/NTx',thr,'-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
