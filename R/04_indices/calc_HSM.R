@@ -30,6 +30,7 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
   } else {
     outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historic/HSM_NTx", thr, "/GSeason_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
   }
+  cat(outfile, "\n")
   
   #process only if file exists
   if (!file.exists(outfile)) {

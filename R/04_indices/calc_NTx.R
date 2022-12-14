@@ -15,9 +15,9 @@ ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 # Load daily maximum temperature
 tx_pth <- paste0(root,'/chirts/Tmax')
 
-# Calculate NTx40 function
-calc_ntx40 <- function(yr, mn){
-  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historic/NTx40/NTx40-',yr,'-',mn,'.tif')
+# Calculate NTx function
+calc_ntx <- function(yr, mn, thr=40){
+  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historic/NTx',thr,'/NTx',thr,'-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
@@ -33,7 +33,7 @@ calc_ntx40 <- function(yr, mn){
     tmx[tmx == -9999] <- NA
     # Calculate heat stress generic crop
     terra::app(x   = tmx,
-               fun = function(x){ ntx40 = sum(x > 40, na.rm = T); return(ntx40) },
+               fun = function(x){ ntxval = sum(x >= thr, na.rm = T); return(ntxval) },
                filename = outfile)
   }
 }
@@ -48,4 +48,4 @@ stp <- stp %>%
   base::as.data.frame()
 
 1:nrow(stp) %>%
-  purrr::map(.f = function(i){calc_ntx40(yr = stp$yrs[i], mn = stp$mns[i])})
+  purrr::map(.f = function(i){calc_ntx(yr = stp$yrs[i], mn = stp$mns[i], thr=40)})

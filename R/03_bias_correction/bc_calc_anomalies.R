@@ -162,8 +162,11 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
       
       #interpolate
       cat("interpolating onto the reference raster\n")
-      intp <- raster::interpolate(raster::raster(ref), tps)
-      intp <- terra::rast(intp) %>% terra::mask(mask = ref)
+      #intp <- raster::interpolate(raster::raster(ref), tps)
+      #intp <- terra::rast(intp) %>% terra::mask(mask = ref)
+      intp <- terra::interpolate(object=terra::rast(ref), model=tps, fun=predict)
+      intp <- intp %>%
+        terra::mask(mask = ref)
       names(intp) <- paste0(sprintf("%02.0f",i))
       
       #clean-up
@@ -186,12 +189,14 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 
 ####
 #loop rcp, variables, and period for given gcm
+#add these rcps later "ssp126", "ssp370"
+#add this variable later "tas"
 gcm_i <- 2
-for (rcp in c("ssp245", "ssp585", "ssp126", "ssp370")) {
-  for (varname in c("tas", "tasmin", "tasmax", "pr")) {
+for (rcp in c("ssp245", "ssp585")) {
+  for (varname in c("tasmin", "tasmax", "pr")) {
     for (futperiod in c("near", "mid")) {
-      #rcp <- "ssp245"; varname <- "tasmin"; futperiod <- "mid"
-      cat("processing rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")
+      #rcp <- "ssp585"; varname <- "tasmin"; futperiod <- "mid"
+      cat("processing gcm=", gcm_list[gcm_i], "/ rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")
       
       #define historical and future periods
       his_period <- 1995:2014
