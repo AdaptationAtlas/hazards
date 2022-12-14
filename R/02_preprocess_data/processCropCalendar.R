@@ -12,6 +12,10 @@ gc(verbose=FALSE, full=TRUE, reset=TRUE)
 #working directory
 wd <- "~/common_data/atlas_crop_calendar"
 
+#output directory
+out_dir <- paste0(wd, "/intermediate")
+if (!file.exists(out_dir)) {dir.create(out_dir)}
+
 #read Africa shapefile
 r_msk <- terra::rast("~/common_data/atlas_hazards/roi/africa.tif")
 
@@ -24,6 +28,7 @@ r_cal <- r_cal %>%
   terra::mask(., r_msk)
 
 #write raster
-terra::writeRaster(r_cal, )
+terra::writeRaster(r_cal, paste0(out_dir, "/mai_rf_ggcmi_crop_calendar_phase3_v1.01_Africa.tif"))
+
 
 
