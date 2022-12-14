@@ -30,7 +30,7 @@ spam_rs <- terra::app(spam_rs, fun=sum, na.rm=TRUE)
 
 #resample resulting raster into CHIRPS resolution, use nn
 chirps_rs <- terra::rast("~/common_data/chirps_wrld/chirps-v2.0.1995.01.01.tif") %>%
-  terra::crop(., spam_rs)
+  terra::crop(., r_msk)
 chirps_rs[chirps_rs[]<0] <- NA
 chirps_rs[!is.na(chirps_rs[])] <- 1
 spam_rs <- terra::resample(spam_rs, chirps_rs, method="bilinear")
