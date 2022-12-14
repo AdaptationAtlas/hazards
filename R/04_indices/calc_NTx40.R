@@ -17,7 +17,7 @@ tx_pth <- paste0(root,'/chirts/Tmax')
 
 # Calculate NTx40 function
 calc_ntx40 <- function(yr, mn){
-  outfile <- paste0(root,'/atlas_hazards/indices/historic/NTx40/NTx40-',yr,'-',mn,'.tif')
+  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historic/NTx40/NTx40-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
@@ -27,7 +27,7 @@ calc_ntx40 <- function(yr, mn){
     # Files
     fls <- paste0(tx_pth,'/',yr,'/Tmax.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
     fls <- fls[file.exists(fls)]
-    # Read precipitation data
+    # Read maximum temperature data
     tmx <- terra::rast(fls)
     tmx <- tmx %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
     # Calculate heat stress generic crop
