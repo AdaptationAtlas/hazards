@@ -45,20 +45,31 @@ calc_hsh <- function(yr, mn){
     tav <- (tmx + tmn)/2
     rhm <- terra::rast(rh_fls)
     rhm <- rhm %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
-    
-    wet_bulb_temp <- function(tmean, rhum){
-      twb <- tmean * atan(0.151977 * (rhum + 8.313659)^0.5) + atan(tmean + rhum) - atan(rhum - 1.676331) + 0.00391838 * rhum ^(3/2) * atan(0.023101 * rhum) - 4.686035
-      return(twb)
+    # Constants
+    c1 = -8.78469475556
+    c2 =  1.61139411
+    c3 =  2.33854883889
+    c4 = -0.14611605
+    c5 = -0.012308094
+    c6 = -0.0164248277778
+    c7 =  2.211732 * 10^(-3)
+    c8 =  7.2546 * 10^(-4)
+    c9 = -3.582 * 10^(-6)
+    heat_idx <- function(tmean, rhum){
+      hi <- ifelse(tmean >= 25,
+                   c1 + (c2*tmean) + (c3*rhum) + (c4*tmean*rhum) + (c5*tmean^2) + (c6*rhum^2) + (c7*tmean^2*rhum) + (c8*tmean*rhum^2) + (c9*tmean^2*rhum^2),
+                   tmean)
+      return(hi)
     }
     # Calculate human heat stress
-    Twb <- terra::lapp(x = terra::sds(tav,rhm), fun = wet_bulb_temp)
-    terra::time(Twb) <- dts
-    Twb_avg <- mean(Twb, na.rm = T) %>% terra::mask(ref)
-    Twb_max <- max(Twb, na.rm = T) %>% terra::mask(ref)
+    HI <- terra::lapp(x = terra::sds(tav,rhm), fun = heat_idx)
+    terra::time(HI) <- dts
+    HI_avg <- mean(HI, na.rm = T) %>% terra::mask(ref)
+    HI_max <- max(HI, na.rm = T) %>% terra::mask(ref)
     
-    terra::writeRaster(Twb_avg, outfile1)
-    terra::writeRaster(Twb_max, outfile2)
-    terra::writeRaster(Twb, outfile3)
+    terra::writeRaster(HI_avg, outfile1)
+    terra::writeRaster(HI_max, outfile2)
+    terra::writeRaster(HI, outfile3)
   }
 }
 
