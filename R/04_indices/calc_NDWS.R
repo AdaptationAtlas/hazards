@@ -98,4 +98,4 @@ stp <- stp %>%
   base::as.data.frame()
 
 1:nrow(stp) %>%
-  purrr::map(.f = function(i){calc_ndws(yr = stp$yrs[i], mn = stp$mns[i])})
+  purrr::map(.f = function(i){calc_ndws(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
