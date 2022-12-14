@@ -30,6 +30,7 @@ calc_ntx40 <- function(yr, mn){
     # Read maximum temperature data
     tmx <- terra::rast(fls)
     tmx <- tmx %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+    tmx[tmx == -9999] <- NA
     # Calculate heat stress generic crop
     terra::app(x   = tmx,
                fun = function(x){ ntx40 = sum(x > 40, na.rm = T); return(ntx40) },

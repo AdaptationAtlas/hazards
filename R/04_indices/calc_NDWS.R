@@ -62,8 +62,14 @@ calc_ndws <- function(yr, mn){
     ETMAX <- terra::lapp(x = terra::sds(srd,tmn,tav,tmx), fun = peest)
     
     # Compute water balance model
-    AVAIL <<- ref
-    AVAIL[!is.na(AVAIL)] <- 0
+    date <- paste0(yr,'-',mn)
+    if(date == '1995-01'){
+      AVAIL <<- ref
+      AVAIL[!is.na(AVAIL)] <- 0
+    } else {
+      AVAIL <<- terra::rast(paste0(dirname(outfile),'/AVAIL.tif'))
+    }
+    
     watbal <- 1:terra::nlyr(ETMAX) %>%
       purrr::map(.f = function(i){
         water_balance <- eabyep_calc(soilcp  = scp,
@@ -78,7 +84,7 @@ calc_ndws <- function(yr, mn){
     # Calculate number of soil water stress days
     NDWS   <- terra::app(x = ERATIO, fun = function(ERATIO){ifelse(ERATIO < 0.5, 1, 0)}) %>% sum()
     terra::writeRaster(NDWS, outfile)
-    
+    terra::writeRaster(AVAIL[[terra::nlyr(AVAIL)]], paste0(dirname(outfile),'/AVAIL.tif'), overwrite = T)
   }
 }
 
