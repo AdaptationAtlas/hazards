@@ -19,20 +19,19 @@ scp <- scp %>% terra::resample(ref) %>% terra::mask(ref)
 sst <- terra::rast(paste0(root,'/atlas_hazards/soils/africa_ssat.tif'))
 sst <- sst %>% terra::resample(ref) %>% terra::mask(ref)
 
-pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
-tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
-tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux') # Solar radiation
-
 # Calculate NDWS function
 calc_ndws <- function(yr, mn){
-  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDWS/NDWS-',yr,'-',mn,'.tif')
+  outfile <- paste0(out_dir,'/NDWS-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
     last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
     # Sequence of dates
-    dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
+    if(as.numeric(yr) > 2020 & mn == '02'){
+      dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-28')), by = 'day')
+    } else {
+      dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
+    }
     # Files
     pr_fls <- paste0(pr_pth,'/chirps-v2.0.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
     pr_fls <- pr_fls[file.exists(pr_fls)]
@@ -40,6 +39,11 @@ calc_ndws <- function(yr, mn){
     tx_fls <- tx_fls[file.exists(tx_fls)]
     tm_fls <- paste0(tm_pth,'/',yr,'/Tmin.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
     tm_fls <- tm_fls[file.exists(tm_fls)]
+    if(as.numeric(yr) > 2020){
+      dts_chr <- as.character(dts)
+      dts_chr <- gsub(pattern = yr, replacement = yrs_mpg$Baseline[yrs_mpg$Future == yr], x = dts_chr)
+      dts <- as.Date(dts_chr); rm(dts_chr)
+    }
     sr_fls <- paste0(sr_pth,'/Solar-Radiation-Flux_C3S-glob-agric_AgERA5_',gsub(pattern='-', replacement='', x=dts, fixed=T),'_final-v1.0.nc')
     sr_fls <- sr_fls[file.exists(sr_fls)]
     # Read variables
@@ -63,7 +67,7 @@ calc_ndws <- function(yr, mn){
     
     # Compute water balance model
     date <- paste0(yr,'-',mn)
-    if(date == '1995-01'){
+    if(date %in% c('1995-01','2021-01','2041-01')){
       AVAIL <<- ref
       AVAIL[!is.na(AVAIL)] <- 0
     } else {
@@ -88,14 +92,42 @@ calc_ndws <- function(yr, mn){
   }
 }
 
-# Setup
-yrs <- 1995:2014
+# # Historical setup
+# yrs <- 1995:2014
+# mns <- c(paste0('0',1:9),10:12)
+# stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+# names(stp) <- c('yrs','mns')
+# stp <- stp %>%
+#   dplyr::arrange(yrs, mns) %>%
+#   base::as.data.frame()
+# pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
+# tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
+# tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
+# sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux') # Solar radiation
+# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDWS')
+
+# Future setup
+gcm <- 'ACCESS-ESM1-5'
+ssp <- 'ssp245'
+prd <- '2021_2040'
+
+cmb <- paste0(ssp,'_',gcm,'_',prd)
+prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+yrs <- prd_num[1]:prd_num[2]
 mns <- c(paste0('0',1:9),10:12)
 stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
 names(stp) <- c('yrs','mns')
 stp <- stp %>%
   dplyr::arrange(yrs, mns) %>%
   base::as.data.frame()
+pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWS')
+
+yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
+                      Future = as.character(c(2021:2040,2041:2060)))
 
 1:nrow(stp) %>%
   purrr::map(.f = function(i){calc_ndws(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
