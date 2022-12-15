@@ -60,7 +60,7 @@ names(stp) <- c('yrs','mns')
 stp <- stp %>%
   dplyr::arrange(yrs, mns) %>%
   base::as.data.frame()
-pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Daily precipitation
+pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
 out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDD')
 
 1:nrow(stp) %>%
