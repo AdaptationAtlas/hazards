@@ -1,102 +1,93 @@
+#Calculate discrete maps
+#HA/JRV, Dec 2022
 
-## Generate final categorical maps
-category_map <- function(ind, prd, ssp){
+# R options
+g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
+#options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
+
+#load packages
+library(terra)
+library(tidyverse)
+
+#working directory
+wd <- "~/common_data/atlas_hazards"
+
+#list of GCMs
+gcm_list <- c("CMIP6_ACCESS-ESM1-5",
+              "CMIP6_MPI-ESM1-2-HR",
+              "CMIP6_EC-Earth3",
+              "CMIP6_INM-CM5-0",
+              "CMIP6_MRI-ESM2-0",
+              "CMIP6_ENSEMBLE")
+
+#list of scenarios
+sce_list <- c("historical" , "ssp245", "ssp585")
+
+#periods
+period_list <- c("hist", "near", "mid")
+
+#indices
+indx_list <- c("NDD", "NTx40", "NTx35", "HSM_NTx35", "HSH", "NDWS", "NDWL50", "THI", "TAI")
+
+#stat
+stat_list <- c("mean_year", "max_year", "median_year")
+
+#source make_class_tb() function
+source("~/Repositories/hazards/R/05_final_maps/makeClassTable.R")
+
+#generate final categorical maps
+category_map <- function(index="NDD", period="hist", scenario="historical", gcm="CMIP6_ENSEMBLE", stat="max_year"){
+  #index="NDD"; period="hist"; scenario="historical"; gcm="CMIP6_ENSEMBLE"; stat="mean_year"
   
-  infile <- paste0(root,'/10.New_Results/toShare/',ind,'/numeric/',ind,'_',prd,'_',ssp,'.tif')
-  outfile <- paste0(root,'/10.New_Results/toShare/',ind,'/categorical/',ind,'_',prd,'_',ssp,'.tif')
-  dir.create(dirname(outfile),F,T)
+  #create class table
+  class_tb <- make_class_tb()
   
-  # if(!file.exists(outfile)){
+  #some consistency checks
+  if (scenario == "historical" & period != "hist") {stop("error, historical scenario should go with hist period")}
+  if (scenario %in% c("ssp245", "ssp585") & !period %in% c("near", "mid")) {stop("error, use near or mid, for ssp scenarios")}
   
-  r <- terra::rast(infile)
+  #assign periods
+  if (period == "hist") {years <- 1995:2014}
+  if (period == "near") {years <- 2021:2040}
+  if (period == "mid") {years <- 2041:2060}
   
-  if(ind %in% c('NDD','NDWS')){
-    cat <- c(-Inf,  15,  1,
-             15,  20,  2,
-             20,  25,  3,
-             25, Inf,  4)
-    cat_m <- matrix(cat, ncol = 3, byrow = T)
-    rc <- terra::classify(x = r, rcl = cat_m, right = F)
-    cls <- data.frame(id = 1:4, class = c('No significant stress','Moderate','Severe','Extreme'))
-    levels(rc) <- cls
-  }
-  if(ind == 'NTx40'){
-    cat <- c(-Inf,   1,  1,
-             1,   5,  2,
-             5,  10,  3,
-             10, Inf,  4)
-    cat_m <- matrix(cat, ncol = 3, byrow = T)
-    rc <- terra::classify(x = r, rcl = cat_m, right = F)
-    cls <- data.frame(id = 1:4, class = c('No significant stress','Moderate','Severe','Extreme'))
-    levels(rc) <- cls
-  }
-  if(ind == 'NWLD50'){
-    cat <- c(-Inf,   2,  1,
-             2,   5,  2,
-             5,   8,  3,
-             8, Inf,  4)
-    cat_m <- matrix(cat, ncol = 3, byrow = T)
-    rc <- terra::classify(x = r, rcl = cat_m, right = F)
-    cls <- data.frame(id = 1:4, class = c('No significant stress','Moderate','Severe','Extreme'))
-    levels(rc) <- cls
-  }
-  if(ind == 'TAI'){
-    cat <- c(-Inf,  40,  1,
-             40,  60,  2,
-             60,  80,  3,
-             80, Inf,  4)
-    cat_m <- matrix(cat, ncol = 3, byrow = T)
-    rc <- terra::classify(x = r, rcl = cat_m, right = F)
-    cls <- data.frame(id = 1:4, class = c('No significant stress','Moderate','Severe','Extreme'))
-    levels(rc) <- cls
-  }
-  if(ind == 'HSH'){
-    # cat <- c(-Inf,  25,  1,
-    #          25,  30,  2,
-    #          30,  35,  3,
-    #          35, Inf,  4)
-    cat <- c(-Inf,  20,  1,
-             20,  25,  2,
-             25,  30,  3,
-             30, Inf,  4)
-    cat_m <- matrix(cat, ncol = 3, byrow = T)
-    rc <- terra::classify(x = r, rcl = cat_m, right = F)
-    cls <- data.frame(id = 1:4, class = c('No significant stress','Moderate','Severe','Extreme'))
-    levels(rc) <- cls
-  }
-  if(ind == 'THI'){
-    cat <- c(-Inf,   72,  1,
-             72,   78,  2,
-             78,  89,  3,
-             89, Inf,  4)
-    cat_m <- matrix(cat, ncol = 3, byrow = T)
-    rc <- terra::classify(x = r, rcl = cat_m, right = F)
-    cls <- data.frame(id = 1:4, class = c('No significant stress','Moderate','Severe','Extreme'))
-    levels(rc) <- cls
-  }
-  if(ind %in% c('HSM','NTx30')){
-    cat <- c(-Inf,  10,  1,
-             10,  20,  2,
-             20,  25,  3,
-             25, Inf,  4)
-    cat_m <- matrix(cat, ncol = 3, byrow = T)
-    rc <- terra::classify(x = r, rcl = cat_m, right = F)
-    cls <- data.frame(id = 1:4, class = c('No significant stress','Moderate','Severe','Extreme'))
-    levels(rc) <- cls
+  #list of folders to go through (1 for hist, 5 GCMs for future)
+  #note folder structure
+  #historical
+  #ssp245_<GCM>_2021_2040
+  #ssp245_<GCM>_2041_2060
+  #ssp585_<GCM>_2021_2040
+  #ssp585_<GCM>_2041_2060
+  if (scenario == "historical") {
+    dir_names <- scenario
+  } else {
+    dir_names <- paste0(scenario, "_", gsub("CMIP6_", "", gcm_list[grep(gcm, gcm_list)]), "_", min(years), "_", max(years))
   }
   
-  terra::writeRaster(rc, outfile, overwrite = T)
+  #input file, both unmasked and masked
+  infile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/", stat, c(".tif", "_masked.tif"))
+  outfile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/", stat, c("", "_masked"), "_categorical.tif")
   
-  # }
-  return('Done\n')
+  #load raster
+  r_in <- terra::rast(infile)
+  
+  #get category matrix for reclassification from class_tb
+  cat_m <- class_tb %>%
+    dplyr::filter(index_name == index) %>%
+    dplyr::select(lower_lim:description)
+  cls <- cat_m %>%
+    dplyr::select(class, description) %>%
+    dplyr::rename(id=class, level=description)
+  cat_m <- cat_m %>%
+    dplyr::select(-description) %>%
+    as.matrix()
+  
+  #reclassify raster
+  for (i in 1:terra::nlyr(r_in)) {
+    rc <- terra::classify(x = r_in[[i]], rcl = cat_m, right = FALSE)
+    levels(rc) <- cls
+    terra::writeRaster(rc, outfile[i], overwrite = TRUE)
+  }
+  return("Done\n")
 }
 
-for(i in 1:length(prds)){
-  for(j in 1:length(ssps)){
-    for(l in 1:length(indx)){
-      
-      category_map(ind = indx[l], prd = prds[i], ssp = ssps[j])
-      
-    }
-  }
-}

@@ -66,6 +66,13 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     dir_names <- paste0(scenario, "_", gsub("CMIP6_", "", gcm_list), "_", min(years), "_", max(years))
   }
   
+  #if doensemble then create empty vectors to store the rasters
+  if (doensemble & scenario %in% c("ssp245", "ssp585")) {
+    if (domean) {ens_meanmonth <- ens_meanmonthk <- ens_meanyr <- ens_meanyrk <- c()}
+    if (domedian) {ens_emonth <- ens_emonthk <- ens_medianyr <- ens_medianyrk <- c()}
+    if (domax) {ens_xmonth <- ens_xmonthk <- ens_max <- ens_maxk <- c()}
+  }
+  
   #loop through the directories of interest
   for (i in 1:length(dir_names)) {
     #i <- 1
@@ -128,6 +135,14 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
       if (index %in% c("HSM_NTx35", "NTx35")) {r_meank <- terra::mask(r_meank, r_crop)}
       if (index == "HSH") {r_meank <- terra::mask(r_meank, r_pop)}
       terra::writeRaster(r_meank, filename=paste0(out_dir, "/mean_year_masked.tif"), overwrite=TRUE)
+      
+      #do ensemble
+      if (doensemble & scenario %in% c("ssp245", "ssp585")) {
+        ens_meanmonth <- c(ens_meanmonth, r_month) 
+        ens_meanmonthk <- c(ens_meanmonthk, r_monthk)
+        ens_meanyr <- c(ens_meanyr, r_mean)
+        ens_meanyrk <- c(ens_meanyrk, r_meank)
+      }
     }
     
     #median
@@ -150,6 +165,14 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
       if (index %in% c("HSM_NTx35", "NTx35")) {r_mediank <- terra::mask(r_mediank, r_crop)}
       if (index == "HSH") {r_mediank <- terra::mask(r_mediank, r_pop)}
       terra::writeRaster(r_mediank, filename=paste0(out_dir, "/median_year_masked.tif"), overwrite=TRUE)
+      
+      #do ensemble
+      if (doensemble & scenario %in% c("ssp245", "ssp585")) {
+        ens_emonth <- c(ens_emonth, r_emonth)
+        ens_emonthk <- c(ens_emonthk, r_emonthk)
+        ens_medianyr <- c(ens_medianyr, r_median)
+        ens_medianyrk <- c(ens_medianyrk, r_mediank)
+      }
     }
     
     #max
@@ -165,6 +188,7 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
         terra::writeRaster(r_xmonthk, filename=paste0(out_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
       } else {
         r_xmonth <- terra::rast(paste0(out_dir, "/mean_monthly.tif"))
+        r_xmonthk <- terra::rast(paste0(out_dir, "/mean_monthly_masked.tif"))
       }
       r_max <- max(r_xmonth, na.rm=TRUE, filename=paste0(out_dir, "/max_year.tif"), overwrite=TRUE)
       
@@ -175,9 +199,60 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
       if (index %in% c("HSM_NTx35", "NTx35")) {r_maxk <- terra::mask(r_maxk, r_crop)}
       if (index == "HSH") {r_maxk <- terra::mask(r_maxk, r_pop)}
       terra::writeRaster(r_maxk, filename=paste0(out_dir, "/max_year_masked.tif"), overwrite=TRUE)
+      
+      #do ensemble
+      if (doensemble & scenario %in% c("ssp245", "ssp585")) {
+        ens_xmonth <- c(ens_xmonth, r_xmonth)
+        ens_xmonthk <- c(ens_xmonthk, r_xmonthk)
+        ens_max <- c(ens_max, r_max)
+        ens_maxk <- c(ens_maxk, r_maxk)
+      }
     }
   }
-  return('Done\n')
+  
+  ###
+  #calculate ensemble
+  if (scenario %in% c("ssp245", "ssp585") & doensemble) {
+    #output folder for ensemble calculation
+    ens_dir <- paste0(wd, "/cmip6/indices/", scenario, "_ENSEMBLE_", min(years), "_", max(years), "/", index)
+    if (!file.exists(ens_dir)) {dir.create(ens_dir, recursive=TRUE)}
+    
+    if (domean) {
+      ens_meanmonth <- terra::rast(ens_meanmonth) %>%
+        terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly.tif"), overwrite=TRUE)
+      ens_meanmonthk <- terra::rast(ens_meanmonthk) %>%
+        terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
+      ens_meanyr <- terra::rast(ens_meanyr) %>%
+        mean(., na.rm=TRUE, filename=paste0(ens_dir, "/mean_year.tif"), overwrite=TRUE)
+      ens_meanyrk <- terra::rast(ens_meanyrk) %>%
+        mean(., na.rm=TRUE, filename=paste0(ens_dir, "/mean_year_masked.tif"), overwrite=TRUE)
+    }
+    
+    if (domedian) {
+      ens_emonth <- terra::rast(ens_emonth) %>%
+        terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/median_monthly.tif"), overwrite=TRUE)
+      ens_emonthk <- terra::rast(ens_emonthk) %>%
+        terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/median_monthly_masked.tif"), overwrite=TRUE)
+      ens_medianyr <- terra::rast(ens_medianyr) %>%
+        mean(., na.rm=TRUE, filename=paste0(ens_dir, "/median_year.tif"), overwrite=TRUE)
+      ens_medianyrk <- terra::rast(ens_medianyrk) %>%
+        mean(., na.rm=TRUE, filename=paste0(ens_dir, "/median_year_masked.tif"), overwrite=TRUE)
+    }
+    
+    if (domax) {
+      if (!domean) { #if domean we assume it has already been written
+        ens_xmonth <- terra::rast(ens_xmonth) %>%
+          terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly.tif"), overwrite=TRUE)
+        ens_xmonthk <- terra::rast(ens_xmonthk) %>%
+          terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
+      }
+      ens_max <- terra::rast(ens_max) %>%
+        mean(., na.rm=TRUE, filename=paste0(ens_dir, "/max_year.tif"), overwrite=TRUE)
+      ens_maxk <- terra::rast(ens_maxk) %>%
+        mean(., na.rm=TRUE, filename=paste0(ens_dir, "/max_year_masked.tif"), overwrite=TRUE)
+    }
+  }
+  return("Done\n")
 }
 
 
