@@ -31,6 +31,7 @@ names(stp) <- c('gcm','ssp','var','prd')
 
 # Read monthly deltas
 get_daily_future_data <- function(gcm, ssp, var, prd){
+  prd <- as.character(prd)
   file <- paste0('CMIP6_',gcm,'_',ssp,'_r1i1p1f1_',var,'_Africa_monthly_intp_anomaly_',prd,'.tif')
   # Load deltas
   dlts <- terra::rast(paste0(anm_pth,'/',file))
@@ -126,7 +127,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
   
 }
 
-2:nrow(stp) %>%
+1:nrow(stp) %>%
   purrr::map(.f = function(i){get_daily_future_data(gcm = stp$gcm[i],
                                                     ssp = stp$ssp[i],
                                                     var = stp$var[i],

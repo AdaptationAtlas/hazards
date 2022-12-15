@@ -12,12 +12,9 @@ root <- '/home/jovyan/common_data'
 
 ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 
-# Load daily maximum temperature
-tx_pth <- paste0(root,'/chirts/Tmax')
-
 # Calculate NTx function
 calc_ntx <- function(yr, mn, thr=40){
-  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NTx',thr,'/NTx',thr,'-',yr,'-',mn,'.tif')
+  outfile <- paste0(out_dir,'/NTx',thr,'/NTx',thr,'-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
@@ -38,14 +35,33 @@ calc_ntx <- function(yr, mn, thr=40){
   }
 }
 
-# Setup
-yrs <- 1995:2014
+# # Historical setup
+# yrs <- 1995:2014
+# mns <- c(paste0('0',1:9),10:12)
+# stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+# names(stp) <- c('yrs','mns')
+# stp <- stp %>%
+#   dplyr::arrange(yrs, mns) %>%
+#   base::as.data.frame()
+# tx_pth <- paste0(root,'/chirts/Tmax') # Daily maximum temperature
+# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical')
+
+# Future setup
+gcm <- 'ACCESS-ESM1-5'
+ssp <- 'ssp245'
+prd <- '2021_2040'
+
+cmb <- paste0(ssp,'_',gcm,'_',prd)
+prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+yrs <- prd_num[1]:prd_num[2]
 mns <- c(paste0('0',1:9),10:12)
 stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
 names(stp) <- c('yrs','mns')
 stp <- stp %>%
   dplyr::arrange(yrs, mns) %>%
   base::as.data.frame()
+pr_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Daily maximum temperatures
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb)
 
 1:nrow(stp) %>%
   purrr::map(.f = function(i){calc_ntx(yr = stp$yrs[i], mn = stp$mns[i], thr=40)})
