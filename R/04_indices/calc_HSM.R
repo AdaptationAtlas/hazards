@@ -16,9 +16,6 @@ wd <- "~/common_data"
 #reference raster
 r_ref <- terra::rast(paste0(wd,'/atlas_hazards/roi/africa.tif'))
 
-# Load daily maximum temperature
-tx_dir <- paste0(wd, "/chirts/Tmax")
-
 # Calculate NTx40 function
 calc_hsm <- function(yr, mn, thr, allyear=FALSE){
   #yr <- 1995
@@ -26,9 +23,9 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
   #thr <- 35
   #give a file name
   if (allyear) {
-    outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historical/HSM_NTx", thr, "/AllYear_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
+    outfile <- paste0(out_dir, "/HSM_NTx", thr, "/AllYear_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
   } else {
-    outfile <- paste0(wd, "/atlas_hazards/cmip6/indices/historical/HSM_NTx", thr, "/GSeason_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
+    outfile <- paste0(out_dir, "/HSM_NTx", thr, "/GSeason_HSM_NTx", thr, "-", yr, "-", mn, ".tif")
   }
   cat(outfile, "\n")
   
@@ -108,7 +105,30 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
 }
 
 # Setup
-yrs <- 1995:2014
+scenario <- "ssp245" #c("historical", "ssp245", "ssp585")
+period <- "near" #c("hist", "near", "mid")
+gcm <- "ACCESS-ESM1-5" #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
+
+#assign periods
+if (period == "hist") {yrs <- 1995:2014}
+if (period == "near") {yrs <- 2021:2040}
+if (period == "mid") {yrs <- 2041:2060}
+
+#out_dir
+if (scenario == "historical") {
+  out_dir <- paste0(wd, "/atlas_hazards/cmip6/indices/historical")
+} else {
+  out_dir <- paste0(wd, "/atlas_hazards/cmip6/indices/", scenario, "_", gcm, "_", min(yrs), "_", max(yrs))
+}
+
+#chirts_dir
+if (scenario == "historical") {
+  tx_dir <- paste0(wd, "/chirts/Tmax")
+} else {
+  tx_dir <- paste0(wd, "/chirts_cmip6_africa/Tmax_", gcm, "_", scenario, "_", min(yrs), "_", max(yrs))
+}
+
+#data.frame for processing
 mns <- c(paste0('0',1:9),10:12)
 stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
 names(stp) <- c('yrs','mns')
