@@ -13,13 +13,9 @@ root <- '/home/jovyan/common_data'
 
 ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 
-pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
-tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
-tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-
 # Calculate TAI function
 calc_tai <- function(yr){
-  outfile <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TAI/TAI-',yr,'.tif')
+  outfile <- paste0(out_dir,'/TAI-',yr,'.tif')
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Sequence of dates
@@ -82,8 +78,25 @@ calc_tai <- function(yr){
   }
 }
 
-# Setup
+# Historical setup
 stp <- data.frame(yrs = 1995:2014)
+pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
+tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
+tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TAI')
+
+# # Future setup
+# gcm <- 'ACCESS-ESM1-5'
+# ssp <- 'ssp245'
+# prd <- '2021_2040'
+# 
+# cmb <- paste0(ssp,'_',gcm,'_',prd)
+# prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+# stp <- data.frame(yrs = prd_num[1]:prd_num[2])
+# pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+# tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+# tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/TAI')
 
 1:nrow(stp) %>%
   purrr::map(.f = function(i){calc_tai(yr = stp$yrs[i]); gc(verbose=F, full=T, reset=T)})

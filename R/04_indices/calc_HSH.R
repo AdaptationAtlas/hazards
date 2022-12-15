@@ -80,40 +80,40 @@ calc_hsh <- function(yr, mn){
   }
 }
 
-# # Historical setup
-# yrs <- 1995:2014
-# mns <- c(paste0('0',1:9),10:12)
-# stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-# names(stp) <- c('yrs','mns')
-# stp <- stp %>%
-#   dplyr::arrange(yrs, mns) %>%
-#   base::as.data.frame()
-# tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
-# tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-# rh_pth <- paste0(root,'/chirts/RHum') # Relative humidity
-# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/HSH')
-
-# Future setup
-gcm <- 'ACCESS-ESM1-5'
-ssp <- 'ssp245'
-prd <- '2021_2040'
-
-cmb <- paste0(ssp,'_',gcm,'_',prd)
-prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-yrs <- prd_num[1]:prd_num[2]
+# Historical setup
+yrs <- 1995:2014
 mns <- c(paste0('0',1:9),10:12)
 stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
 names(stp) <- c('yrs','mns')
 stp <- stp %>%
   dplyr::arrange(yrs, mns) %>%
   base::as.data.frame()
-tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
-tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
-rh_pth <- paste0(root,'/chirts/RHum')                                   # Relative humidity
-out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/HSH')
+tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
+tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
+rh_pth <- paste0(root,'/chirts/RHum') # Relative humidity
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/HSH')
 
-yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
-                      Future = as.character(c(2021:2040,2041:2060)))
+# # Future setup
+# gcm <- 'ACCESS-ESM1-5'
+# ssp <- 'ssp245'
+# prd <- '2021_2040'
+# 
+# cmb <- paste0(ssp,'_',gcm,'_',prd)
+# prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+# yrs <- prd_num[1]:prd_num[2]
+# mns <- c(paste0('0',1:9),10:12)
+# stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+# names(stp) <- c('yrs','mns')
+# stp <- stp %>%
+#   dplyr::arrange(yrs, mns) %>%
+#   base::as.data.frame()
+# tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+# tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+# rh_pth <- paste0(root,'/chirts/RHum')                                   # Relative humidity
+# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/HSH')
+# 
+# yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
+#                       Future = as.character(c(2021:2040,2041:2060)))
 
 1:nrow(stp) %>%
   purrr::map(.f = function(i){calc_hsh(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
