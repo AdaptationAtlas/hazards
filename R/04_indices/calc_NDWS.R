@@ -95,7 +95,7 @@ calc_ndws <- function(yr, mn){
       
       out     <- list(Availability = c(AVAIL, avail),
                       # Demand       = demand,
-                      Eratio       = eratio,
+                      Eratio       = eratio
                       # Logging      = logging
                       )
       return(out)
