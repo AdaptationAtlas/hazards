@@ -125,6 +125,8 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
     }
   }
   
+  return(cat(paste0(var,'_',gcm,'_',ssp,'_',prd)))
+  
 }
 
 1:nrow(stp) %>%

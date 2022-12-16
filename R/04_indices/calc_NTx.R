@@ -60,7 +60,7 @@ names(stp) <- c('yrs','mns')
 stp <- stp %>%
   dplyr::arrange(yrs, mns) %>%
   base::as.data.frame()
-pr_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Daily maximum temperatures
+tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Daily maximum temperatures
 out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb)
 
 1:nrow(stp) %>%

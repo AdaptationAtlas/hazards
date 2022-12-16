@@ -119,42 +119,42 @@ calc_ndws <- function(yr, mn){
   }
 }
 
-# # Historical setup
-# yrs <- 1995:2014
-# mns <- c(paste0('0',1:9),10:12)
-# stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-# names(stp) <- c('yrs','mns')
-# stp <- stp %>%
-#   dplyr::arrange(yrs, mns) %>%
-#   base::as.data.frame()
-# pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
-# tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
-# tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-# sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux') # Solar radiation
-# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDWS')
-
-# Future setup
-gcm <- 'ACCESS-ESM1-5'
-ssp <- 'ssp245'
-prd <- '2021_2040'
-
-cmb <- paste0(ssp,'_',gcm,'_',prd)
-prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-yrs <- prd_num[1]:prd_num[2]
+# Historical setup
+yrs <- 1995:2014
 mns <- c(paste0('0',1:9),10:12)
 stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
 names(stp) <- c('yrs','mns')
 stp <- stp %>%
   dplyr::arrange(yrs, mns) %>%
   base::as.data.frame()
-pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
-tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
-tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
-sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
-out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWS')
+pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
+tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
+tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
+sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux') # Solar radiation
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDWS')
 
-yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
-                      Future = as.character(c(2021:2040,2041:2060)))
+# # Future setup
+# gcm <- 'ACCESS-ESM1-5'
+# ssp <- 'ssp245'
+# prd <- '2021_2040'
+# 
+# cmb <- paste0(ssp,'_',gcm,'_',prd)
+# prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+# yrs <- prd_num[1]:prd_num[2]
+# mns <- c(paste0('0',1:9),10:12)
+# stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+# names(stp) <- c('yrs','mns')
+# stp <- stp %>%
+#   dplyr::arrange(yrs, mns) %>%
+#   base::as.data.frame()
+# pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+# tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+# tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+# sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
+# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWS')
+# 
+# yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
+#                       Future = as.character(c(2021:2040,2041:2060)))
 
 1:nrow(stp) %>%
   purrr::map(.f = function(i){calc_ndws(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
