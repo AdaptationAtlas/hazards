@@ -17,7 +17,7 @@ ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 anm_pth <- paste0(root,'/esfg_cmip6/intermediate/interpolated_mthly_anomaly')
 
 # Setup
-gcms <- c('ACCESS-ESM1-5')
+gcms <- c('ACCESS-ESM1-5','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0') # 'EC-Earth3'
 ssps <- c('ssp245','ssp585')
 vrss <- c('pr','tasmax','tasmin')
 prds <- c('2021_2040','2041_2060')
@@ -77,6 +77,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
               if(!file.exists(outfile)){
                 r <- terra::rast(paste0(his_pth,'/',his_daily[k]))
                 r <- r %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+                r[r == -9999] <- NA
                 r <- r * (1 + delta)
                 terra::writeRaster(r, outfile)
               }
@@ -94,12 +95,13 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                       paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd))
     if(length(list.files(fut_pth)) < 7300){
       # File structure
-      his_str <- ifelse(var == 'tasmax',
-                        paste0('Tmax.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif'),
-                        paste0('Tmin.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif'))
-      fut_str <- ifelse(var == 'tasmax',
-                        paste0('Tmax.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif'),
-                        paste0('Tmin.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif'))
+      if(var == 'tasmax'){
+        his_str <- paste0('Tmax.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
+        fut_str <- paste0('Tmax.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif')
+      } else {
+        his_str <- paste0('Tmin.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
+        fut_str <- paste0('Tmin.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif')
+      }
       yrs_str <- mpg$year
       # Split by months
       his_lst <- split(his_str, mpg$month)
@@ -117,6 +119,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
               if(!file.exists(outfile)){
                 r <- terra::rast(paste0(his_pth,'/',yrs_daily[k],'/',his_daily[k]))
                 r <- r %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+                r[r == -9999] <- NA
                 r <- r + delta
                 terra::writeRaster(r, outfile)
               }
