@@ -105,9 +105,9 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
 }
 
 # Setup
-scenario <- "ssp245" #c("historical", "ssp245", "ssp585")
-period <- "near" #c("hist", "near", "mid")
-gcm <- "ACCESS-ESM1-5" #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
+scenario <- "historical" #c("historical", "ssp245", "ssp585")
+period <- "his" #c("hist", "near", "mid")
+gcm <- NA #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
 
 #assign periods
 if (period == "hist") {yrs <- 1995:2014}
