@@ -74,6 +74,33 @@ calc_ndws <- function(yr, mn){
       AVAIL <<- terra::rast(paste0(dirname(outfile),'/AVAIL.tif'))
     }
     
+    eabyep_calc <- function(soilcp = scp, soilsat = ssat, avail = AVAIL,rain = prc[[1]], evap = ETMAX[[1]]){
+      
+      avail   <- min(avail, soilcp)
+      
+      # ERATIO
+      percwt <- min(avail/soilcp*100, 100)
+      percwt <- max(percwt, 1)
+      eratio <- min(percwt/(97-3.868*sqrt(soilcp)), 1)
+      
+      demand  <- eratio * evap
+      result  <- avail + rain - demand
+      # logging <- result - soilcp
+      # logging <- max(logging, 0)
+      # logging <- min(logging, soilsat)
+      # runoff  <- result - logging + soilcp
+      avail   <- min(soilcp, result)
+      avail   <- max(avail, 0)
+      # runoff  <- max(runoff, 0)
+      
+      out     <- list(Availability = c(AVAIL, avail),
+                      # Demand       = demand,
+                      Eratio       = eratio,
+                      # Logging      = logging
+                      )
+      return(out)
+    }
+    
     watbal <- 1:terra::nlyr(ETMAX) %>%
       purrr::map(.f = function(i){
         water_balance <- eabyep_calc(soilcp  = scp,
