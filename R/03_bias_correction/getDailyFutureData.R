@@ -6,7 +6,7 @@
 g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(library(pacman))
-suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate))
+suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate,furrr))
 
 root <- '/home/jovyan/common_data'
 
@@ -71,8 +71,9 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
           delta <- dlts[[j]]
           his_daily <- his_lst[[j]]
           fut_daily <- fut_lst[[j]]
+          plan(multicore, workers = 15)
           1:length(his_daily) %>%
-            purrr::map(.f = function(k){
+            furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',fut_daily[k])
               if(!file.exists(outfile)){
                 r <- terra::rast(paste0(his_pth,'/',his_daily[k]))
@@ -113,8 +114,9 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
           his_daily <- his_lst[[j]]
           fut_daily <- fut_lst[[j]]
           yrs_daily <- yrs_lst[[j]]
+          plan(multicore, workers = 15)
           1:length(his_daily) %>%
-            purrr::map(.f = function(k){
+            furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',yrs_daily[k],'/',fut_daily[k]); dir.create(dirname(outfile),F,T)
               if(!file.exists(outfile)){
                 r <- terra::rast(paste0(his_pth,'/',yrs_daily[k],'/',his_daily[k]))
