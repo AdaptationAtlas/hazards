@@ -22,7 +22,10 @@ ssps <- c('ssp245','ssp585')
 vrss <- c('pr','tasmax','tasmin')
 prds <- c('2021_2040','2041_2060')
 stp <- base::expand.grid(gcms,ssps,vrss,prds) %>% base::as.data.frame()
-names(stp) <- c('gcm','ssp','var','prd')
+names(stp) <- c('gcm','ssp','var','prd'); rm(gcms, ssps, vrss, prds)
+stp <- stp %>%
+  dplyr::arrange(gcm,ssp,prd,var) %>%
+  base::as.data.frame()
 
 # gcm <- gcms[1]
 # ssp <- ssps[1]
@@ -83,6 +86,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 terra::writeRaster(r, outfile)
               }
             })
+          future:::ClusterRegistry('stop')
         })
     }
   }
@@ -126,11 +130,12 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 terra::writeRaster(r, outfile)
               }
             })
+          future:::ClusterRegistry('stop')
         })
     }
   }
   
-  return(cat(paste0(var,'_',gcm,'_',ssp,'_',prd)))
+  return(cat(paste0(var,'_',gcm,'_',ssp,'_',prd,' ready.\n')))
   
 }
 
