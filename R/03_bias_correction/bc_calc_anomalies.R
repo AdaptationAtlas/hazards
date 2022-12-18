@@ -117,7 +117,13 @@ calc_climatology <- function(data_file, period, sce_lab, gcm_name, varname, mth_
 ####
 #function to interpolate monthly anomalies
 intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varname, period) {
+  #final output file name
   anom_fname <- paste0(anom_dir, "/", gcm_name, "_", rcp, "_r1i1p1f1_", varname, "_Africa_monthly_intp_anomaly_", min(period), "_", max(period), ".tif")
+  
+  #create temporary directory to store monthly output (to reduce impact of server crashes)
+  anom_dname <- paste0(anom_dir, "/tmp_", gcm_name, "_", rcp, "_r1i1p1f1_", varname, "_Africa_monthly_intp_anomaly_", min(period), "_", max(period))
+  if (!file.exists(anom_dname)) {dir.create(anom_dname)}
+  
   if (!file.exists(anom_fname)) {
     r_anom <- c()
     for (i in 1:12) {
@@ -149,29 +155,30 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
       #as data.frame
       crds <- anom %>% terra::as.data.frame(xy = T)
       
-      #empty raster at GCM resolution
-      empty <- anom
-      terra::values(empty) <- NA
-      
-      #anomaly values
-      anomalies_values <- unique(crds[,'mean'])
-      
       #fit tps interpolation model
       cat("fitting thin plate spline\n")
-      tps  <- fields::Tps(x = crds[,c('x','y')], Y = crds[,'mean'])
+      if (!file.exists(paste0(anom_dname, "/tps_mth_",i,".RData"))) {
+        tps  <- fields::Tps(x = crds[,c('x','y')], Y = crds[,'mean'])
+        save(tps, file=paste0(anom_dname, "/tps_mth_",i,".RData"))
+      } else {
+        load(paste0(anom_dname, "/tps_mth_",i,".RData"))
+      }
       
       #interpolate
       cat("interpolating onto the reference raster\n")
-      #intp <- raster::interpolate(raster::raster(ref), tps)
-      #intp <- terra::rast(intp) %>% terra::mask(mask = ref)
-      intp <- terra::interpolate(object=terra::rast(ref), model=tps, fun=predict)
-      intp <- intp %>%
-        terra::mask(mask = ref)
-      names(intp) <- paste0(sprintf("%02.0f",i))
+      if (!file.exists(paste0(anom_dname, "/raster_mth_",i,".tif"))) {
+        intp <- terra::interpolate(object=terra::rast(ref), model=tps, fun=predict)
+        intp <- intp %>%
+          terra::mask(mask = ref)
+        names(intp) <- paste0(sprintf("%02.0f",i))
+        terra::writeRaster(intp, paste0(anom_dname, "/raster_mth_",i,".tif"))
+      } else {
+        intp <- terra::rast(paste0(anom_dname, "/raster_mth_",i,".tif"))
+      }
       
       #clean-up
-      rm(tps)
-      gc(verbose=FALSE, full=TRUE)
+      rm(list=c("tps", "anom", "avg_fut", "avg_his", "crds"))
+      gc(verbose=FALSE, full=TRUE, reset=TRUE)
       
       #append
       r_anom <- c(r_anom, intp)
@@ -180,9 +187,18 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
     #create raster, write
     r_anom <- terra::rast(r_anom)
     terra::writeRaster(r_anom, anom_fname)
+    
+    #final cleanup
+    rm(intp)
+    gc(verbose=FALSE, full=TRUE, reset=TRUE)
   } else {
     r_anom <- terra::rast(anom_fname)
   }
+  
+  #delete temporary directory
+  if (file.exists(anom_dname)) {system(paste0("rm -rf ", anom_dname))}
+  
+  #return object
   return(r_anom)
 }
 
@@ -191,12 +207,12 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 #loop rcp, variables, and period for given gcm
 #add these rcps later "ssp126", "ssp370"
 #add this variable later "tas"
-#gcm_i <- 5
-#rcp <- "ssp245" #"ssp585"
-#varname <- "tasmin"#"tasmax", "pr"
+gcm_i <- 3
+rcp <- "ssp245" #"ssp585"
+varname <- "tasmin" #"tasmin", "tasmax", "pr"
 
-for (rcp in c("ssp245", "ssp585")) {
-  for (varname in c("tasmin", "tasmax", "pr")) {
+#for (rcp in c("ssp245", "ssp585")) {
+#  for (varname in c("tasmin", "tasmax", "pr")) {
     for (futperiod in c("near", "mid")) {
       #rcp <- "ssp585"; varname <- "tasmin"; futperiod <- "mid"
       cat("processing gcm=", gcm_list[gcm_i], "/ rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")
@@ -242,6 +258,10 @@ for (rcp in c("ssp245", "ssp585")) {
                                  rcp=rcp, 
                                  varname=varname, 
                                  period=rcp_period)
+      
+      #clean-up
+      rm(list=c("his_clm", "rcp_clm", "rcp_anom"))
+      gc(verbose=FALSE, full=TRUE, reset=TRUE)
     }
-  }
-}
+#  }
+#}
