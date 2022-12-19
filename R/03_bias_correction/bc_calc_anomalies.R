@@ -5,6 +5,9 @@
 library(tidyverse)
 library(terra)
 
+#options
+options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
+
 #working directory
 wd <- "~/common_data/esfg_cmip6"
 raw_dir <- paste0(wd, "/raw")
@@ -142,6 +145,7 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
         #if precip is below zero make it zero
         avg_his[avg_his[] < 0] <- 0
         avg_fut[avg_fut[] < 0] <- 0
+        avg_his[avg_his[] == 0] <- 0.01 #if historical has exactly zero make it non-zero
         
         #calculate anomaly in fraction
         anom <- (avg_fut - avg_his)/avg_his
@@ -209,7 +213,7 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 #add this variable later "tas"
 gcm_i <- 3
 rcp <- "ssp245" #"ssp585"
-varname <- "tasmin" #"tasmin", "tasmax", "pr"
+varname <- "pr" #"tasmin", "tasmax", "pr"
 
 #for (rcp in c("ssp245", "ssp585")) {
 #  for (varname in c("tasmin", "tasmax", "pr")) {
