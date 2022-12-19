@@ -56,6 +56,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
   Future   <- Future[!(format(Future,"%m") == "02" & format(Future, "%d") == "29"), drop = FALSE]
   mpg <- data.frame(Baseline, Future)
   mpg$year  <- lubridate::year(mpg$Baseline)
+  mpg$year_fut <- lubridate::year(mpg$Future)
   mpg$month <- lubridate::month(mpg$Baseline)
   
   if(var == 'pr'){
@@ -86,7 +87,6 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 terra::writeRaster(r, outfile)
               }
             })
-          future:::ClusterRegistry('stop')
         })
     }
   }
@@ -107,21 +107,24 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
         his_str <- paste0('Tmin.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
         fut_str <- paste0('Tmin.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif')
       }
-      yrs_str <- mpg$year
+      yrs_str   <- mpg$year
+      yrs_f_str <- mpg$year_fut
       # Split by months
-      his_lst <- split(his_str, mpg$month)
-      fut_lst <- split(fut_str, mpg$month)
-      yrs_lst <- split(yrs_str, mpg$month)
+      his_lst   <- split(his_str, mpg$month)
+      fut_lst   <- split(fut_str, mpg$month)
+      yrs_lst   <- split(yrs_str, mpg$month)
+      yrs_f_lst <- split(yrs_f_str, mpg$month)
       1:length(his_lst) %>%
         purrr::map(.f = function(j){
           delta <- dlts[[j]]
-          his_daily <- his_lst[[j]]
-          fut_daily <- fut_lst[[j]]
-          yrs_daily <- yrs_lst[[j]]
+          his_daily   <- his_lst[[j]]
+          fut_daily   <- fut_lst[[j]]
+          yrs_daily   <- yrs_lst[[j]]
+          yrs_f_daily <- yrs_f_lst[[j]]
           plan(multicore, workers = 15)
           1:length(his_daily) %>%
             furrr::future_map(.f = function(k){
-              outfile <- paste0(fut_pth,'/',yrs_daily[k],'/',fut_daily[k]); dir.create(dirname(outfile),F,T)
+              outfile <- paste0(fut_pth,'/',yrs_f_daily[k],'/',fut_daily[k]); dir.create(dirname(outfile),F,T)
               if(!file.exists(outfile)){
                 r <- terra::rast(paste0(his_pth,'/',yrs_daily[k],'/',his_daily[k]))
                 r <- r %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
@@ -130,7 +133,6 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 terra::writeRaster(r, outfile)
               }
             })
-          future:::ClusterRegistry('stop')
         })
     }
   }
