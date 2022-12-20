@@ -83,7 +83,8 @@ stp <- data.frame(yrs = 1995:2014)
 pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
 tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
 tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TAI')
+# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TAI')
+out_dir <- '/home/jovyan/indices/historical/TAI'
 
 # # Future setup
 # gcm <- 'ACCESS-ESM1-5'
