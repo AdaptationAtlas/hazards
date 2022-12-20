@@ -87,7 +87,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 terra::writeRaster(r, outfile)
               }
             })
-          future:::ClusterRegistry("stop"); gc(reset = T)
+          plan(sequential); gc(reset = T)
         })
     }
   }
@@ -134,7 +134,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 terra::writeRaster(r, outfile)
               }
             })
-          future:::ClusterRegistry("stop"); gc(reset = T)
+          plan(sequential); gc(reset = T)
         })
     }
   }

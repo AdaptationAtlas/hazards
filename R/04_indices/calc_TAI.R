@@ -6,7 +6,7 @@
 g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(library(pacman))
-suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate))
+suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate,envirem))
 source('https://raw.githubusercontent.com/CIAT-DAPA/agro-clim-indices/main/_main_functions.R')
 
 root <- '/home/jovyan/common_data'
@@ -59,7 +59,7 @@ calc_tai <- function(yr){
     envirem::assignNames(solrad='SRAD_##', tmean = 'TMEAN_##', precip = 'PREC_##')
     
     TMEAN <- tav_month %>% raster::stack()
-    PREC  <- pr_month %>% raster::stack()
+    PREC  <- prc_month %>% raster::stack()
     TRNG  <- rng_month %>% raster::stack()
     
     names(TMEAN) <- c(paste0('TMEAN_0',1:9),paste0('TMEAN_', 10:12))
