@@ -75,7 +75,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
           delta <- dlts[[j]]
           his_daily <- his_lst[[j]]
           fut_daily <- fut_lst[[j]]
-          plan(multicore, workers = 15)
+          plan(multicore, workers = 20)
           1:length(his_daily) %>%
             furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',fut_daily[k])
@@ -87,6 +87,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 terra::writeRaster(r, outfile)
               }
             })
+          future:::ClusterRegistry("stop"); gc(reset = T)
         })
     }
   }
@@ -121,7 +122,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
           fut_daily   <- fut_lst[[j]]
           yrs_daily   <- yrs_lst[[j]]
           yrs_f_daily <- yrs_f_lst[[j]]
-          plan(multicore, workers = 15)
+          plan(multicore, workers = 20)
           1:length(his_daily) %>%
             furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',yrs_f_daily[k],'/',fut_daily[k]); dir.create(dirname(outfile),F,T)
@@ -133,6 +134,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 terra::writeRaster(r, outfile)
               }
             })
+          future:::ClusterRegistry("stop"); gc(reset = T)
         })
     }
   }
