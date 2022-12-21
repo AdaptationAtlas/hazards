@@ -49,7 +49,7 @@ calc_ndd <- function(yr, mn){
 # Future setup
 gcm <- 'ACCESS-ESM1-5'
 ssp <- 'ssp245'
-prd <- '2021_2040'
+prd <- '2041_2060'
 
 cmb <- paste0(ssp,'_',gcm,'_',prd)
 prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
