@@ -68,6 +68,7 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
       rc2[!is.na(r_ref[])] <- 366
       r_cal <- c(rc1, rc2)
       rm(list=c("rc1", "rc2"))
+      gc(verbose=FALSE, full=TRUE, reset=TRUE)
     } else {
       r_cal <- terra::rast(paste0(wd, "/atlas_crop_calendar/intermediate/mai_rf_ggcmi_crop_calendar_phase3_v1.01_Africa.tif"))
     }
@@ -94,6 +95,10 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
       
       #append
       r_hsm <- c(r_hsm, ry)
+      
+      #clean up
+      rm(rx)
+      gc(verbose=FALSE, full=TRUE, reset=TRUE)
     }
     r_hsm <- terra::rast(r_hsm)
     
@@ -101,13 +106,17 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
     terra::app(x   = r_hsm,
                fun = sum, na.rm=TRUE,
                filename = outfile)
+    
+    #clean up
+    rm(r_hsm, ry, tmx, tmx_doy, tdates, r_cal)
+    gc(verbose=FALSE, full=TRUE, reset=TRUE)
   }
 }
 
 # Setup
-scenario <- "historical" #c("historical", "ssp245", "ssp585")
-period <- "his" #c("hist", "near", "mid")
-gcm <- NA #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
+scenario <- "ssp245" #c("historical", "ssp245", "ssp585")
+period <- "near" #c("hist", "near", "mid")
+gcm <- "ACCESS-ESM1-5" #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
 
 #assign periods
 if (period == "hist") {yrs <- 1995:2014}
