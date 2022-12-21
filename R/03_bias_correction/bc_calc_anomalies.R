@@ -4,6 +4,7 @@
 #load libraries
 library(tidyverse)
 library(terra)
+library(fields)
 
 #options
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
@@ -212,8 +213,8 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 #add these rcps later "ssp126", "ssp370"
 #add this variable later "tas"
 gcm_i <- 3
-rcp <- "ssp245" #"ssp585"
-varname <- "pr" #"tasmin", "tasmax", "pr"
+rcp <- "ssp585" #"ssp585"
+varname <- "tasmin" #"tasmin", "tasmax", "pr"
 
 #for (rcp in c("ssp245", "ssp585")) {
 #  for (varname in c("tasmin", "tasmax", "pr")) {
