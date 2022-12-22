@@ -45,6 +45,8 @@ calc_tai <- function(yr){
     prc_month <- terra::tapp(x = prc, index = lubridate::month(dts), fun = sum)
     tav_month <- terra::tapp(x = tav, index = lubridate::month(dts), fun = mean)
     rng_month <- terra::tapp(x = rnge, index = lubridate::month(dts), fun = mean)
+    rm(prc, tav, rnge)
+    gc(reset = T)
     # ET SRAD
     srf <- list.dirs(paste0(root,'/ET_SolRad'), full.names = T, recursive = F)
     srf <- srf[-length(srf)]
@@ -68,6 +70,8 @@ calc_tai <- function(yr){
     
     # Thornthwaite's Aridity Index
     PET <- envirem::monthlyPET(TMEAN, srd, TRNG) %>% raster::stack()
+    rm(srd)
+    gc(reset = T)
     names(PET)  <- c(paste0('PET_0',1:9), paste0('PET_', 10:12))
     PET <- raster::resample(PET, PREC[[1]])
     TAI <- envirem::aridityIndexThornthwaite(PREC, PET)
