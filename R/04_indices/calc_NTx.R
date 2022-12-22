@@ -32,6 +32,9 @@ calc_ntx <- function(yr, mn, thr=40){
     terra::app(x   = tmx,
                fun = function(x){ ntxval = sum(x >= thr, na.rm = T); return(ntxval) },
                filename = outfile)
+    # Clean up
+    rm(tmx)
+    gc(verbose=FALSE, full=TRUE, reset=TRUE)
   }
 }
 
@@ -47,21 +50,26 @@ calc_ntx <- function(yr, mn, thr=40){
 # out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical')
 
 # Future setup
-gcm <- 'ACCESS-ESM1-5'
-ssp <- 'ssp245'
-prd <- '2021_2040'
+gcm <- 'MRI-ESM2-0' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+for (ssp in c('ssp245', 'ssp585')) {
+    for (prd in c('2021_2040', '2041_2060')) {
+        cat("...processing gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "\n")
+        #ssp <- 'ssp245' #ssp585
+        #prd <- '2041_2060' #2021_2040
 
-cmb <- paste0(ssp,'_',gcm,'_',prd)
-prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-yrs <- prd_num[1]:prd_num[2]
-mns <- c(paste0('0',1:9),10:12)
-stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-names(stp) <- c('yrs','mns')
-stp <- stp %>%
-  dplyr::arrange(yrs, mns) %>%
-  base::as.data.frame()
-tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Daily maximum temperatures
-out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb)
+        cmb <- paste0(ssp,'_',gcm,'_',prd)
+        prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+        yrs <- prd_num[1]:prd_num[2]
+        mns <- c(paste0('0',1:9),10:12)
+        stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+        names(stp) <- c('yrs','mns')
+        stp <- stp %>%
+          dplyr::arrange(yrs, mns) %>%
+          base::as.data.frame()
+        tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Daily maximum temperatures
+        out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb)
 
-1:nrow(stp) %>%
-  purrr::map(.f = function(i){calc_ntx(yr = stp$yrs[i], mn = stp$mns[i], thr=40)})
+        1:nrow(stp) %>%
+          purrr::map(.f = function(i){calc_ntx(yr = stp$yrs[i], mn = stp$mns[i], thr=35)})
+    }
+}
