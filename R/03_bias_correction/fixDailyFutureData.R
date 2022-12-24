@@ -28,7 +28,7 @@ fix_day <- function(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp 
     fl2fix <- paste0(root,'/chirps_cmip6_africa/',prfx,'_',gcm,'_',ssp,'_',prd,'/chirps-v2.0.',gsub('-','.',as.character(date)),'.tif')
   } else {
     if(var %in% c('tasmax','tasmin')){
-      fl2fix <- paste0(root,'chirts_cmip6_africa/',prfx,'_',gcm,'_',ssp,'_',prd,'/',yr,'/',prfx,'.',gsub('-','.',as.character(date)),'.tif')
+      fl2fix <- paste0(root,'/chirts_cmip6_africa/',prfx,'_',gcm,'_',ssp,'_',prd,'/',yr,'/',prfx,'.',gsub('-','.',as.character(date)),'.tif')
     }
   }
   
@@ -99,4 +99,4 @@ fix_day <- function(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp 
   
 }
 
-fix_day(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp = 'ssp585', prd = '2041_2060')
+#fix_day(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp = 'ssp585', prd = '2041_2060')
