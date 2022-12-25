@@ -116,41 +116,43 @@ calc_hsm <- function(yr, mn, thr, allyear=FALSE){
 # Setup
 #scenario <- "ssp245" #c("historical", "ssp245", "ssp585")
 #period <- "near" #c("hist", "near", "mid")
-gcm <- "MPI-ESM1-2-HR" #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
+#gcm <- "MPI-ESM1-2-HR" #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
 
-for (scenario in c("ssp245", "ssp585")) {
-    for (period in c("near", "mid")) {
-        #assign periods
-        if (period == "hist") {yrs <- 1995:2014}
-        if (period == "near") {yrs <- 2021:2040}
-        if (period == "mid") {yrs <- 2041:2060}
+for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
+    for (scenario in c("ssp245", "ssp585")) {
+        for (period in c("near", "mid")) {
+            #assign periods
+            if (period == "hist") {yrs <- 1995:2014}
+            if (period == "near") {yrs <- 2021:2040}
+            if (period == "mid") {yrs <- 2041:2060}
 
-        #out_dir
-        if (scenario == "historical") {
-          out_dir <- paste0(wd, "/atlas_hazards/cmip6/indices/historical")
-        } else {
-          out_dir <- paste0(wd, "/atlas_hazards/cmip6/indices/", scenario, "_", gcm, "_", min(yrs), "_", max(yrs))
+            #out_dir
+            if (scenario == "historical") {
+              out_dir <- paste0(wd, "/atlas_hazards/cmip6/indices/historical")
+            } else {
+              out_dir <- paste0(wd, "/atlas_hazards/cmip6/indices/", scenario, "_", gcm, "_", min(yrs), "_", max(yrs))
+            }
+
+            #chirts_dir
+            if (scenario == "historical") {
+              tx_dir <- paste0(wd, "/chirts/Tmax")
+            } else {
+              tx_dir <- paste0(wd, "/chirts_cmip6_africa/Tmax_", gcm, "_", scenario, "_", min(yrs), "_", max(yrs))
+            }
+
+            #data.frame for processing
+            mns <- c(paste0('0',1:9),10:12)
+            stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+            names(stp) <- c('yrs','mns')
+            stp <- stp %>%
+              dplyr::arrange(yrs, mns) %>%
+              base::as.data.frame()
+
+            1:nrow(stp) %>%
+              purrr::map(.f = function(i){calc_hsm(yr = stp$yrs[i], 
+                                                   mn = stp$mns[i],
+                                                   thr = 35,
+                                                   allyear = FALSE)})
         }
-
-        #chirts_dir
-        if (scenario == "historical") {
-          tx_dir <- paste0(wd, "/chirts/Tmax")
-        } else {
-          tx_dir <- paste0(wd, "/chirts_cmip6_africa/Tmax_", gcm, "_", scenario, "_", min(yrs), "_", max(yrs))
-        }
-
-        #data.frame for processing
-        mns <- c(paste0('0',1:9),10:12)
-        stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-        names(stp) <- c('yrs','mns')
-        stp <- stp %>%
-          dplyr::arrange(yrs, mns) %>%
-          base::as.data.frame()
-
-        1:nrow(stp) %>%
-          purrr::map(.f = function(i){calc_hsm(yr = stp$yrs[i], 
-                                               mn = stp$mns[i],
-                                               thr = 35,
-                                               allyear = FALSE)})
     }
 }
