@@ -99,4 +99,4 @@ fix_day <- function(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp 
   
 }
 
-fix_day(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp = 'ssp585', prd = '2041_2060')
+fix_day(date = '2035-01-30', var = 'pr', gcm = 'EC-Earth3', ssp = 'ssp585', prd = '2021_2040')

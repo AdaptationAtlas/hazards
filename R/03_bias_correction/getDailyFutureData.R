@@ -17,7 +17,7 @@ ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 anm_pth <- paste0(root,'/esfg_cmip6/intermediate/interpolated_mthly_anomaly')
 
 # Setup
-gcms <- c('ACCESS-ESM1-5','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0') # 'EC-Earth3'
+gcms <- c('EC-Earth3') # 'ACCESS-ESM1-5','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0'
 ssps <- c('ssp245','ssp585')
 vrss <- c('pr','tasmax','tasmin')
 prds <- c('2021_2040','2041_2060')
