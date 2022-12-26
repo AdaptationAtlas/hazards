@@ -50,7 +50,7 @@ calc_ntx <- function(yr, mn, thr=40){
 # out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical')
 
 # Future setup
-gcm <- 'MRI-ESM2-0' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+gcm <- 'MPI-ESM1-2-HR' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
 for (ssp in c('ssp245', 'ssp585')) {
     for (prd in c('2021_2040', '2041_2060')) {
         cat("...processing gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "\n")
@@ -70,6 +70,6 @@ for (ssp in c('ssp245', 'ssp585')) {
         out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb)
 
         1:nrow(stp) %>%
-          purrr::map(.f = function(i){calc_ntx(yr = stp$yrs[i], mn = stp$mns[i], thr=35)})
+          purrr::map(.f = function(i){calc_ntx(yr = stp$yrs[i], mn = stp$mns[i], thr=40)})
     }
 }

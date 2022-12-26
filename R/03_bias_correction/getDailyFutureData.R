@@ -27,10 +27,10 @@ stp <- stp %>%
   dplyr::arrange(gcm,ssp,prd,var) %>%
   base::as.data.frame()
 
-# gcm <- gcms[1]
-# ssp <- ssps[2]
+# gcm <- gcms[4]
+# ssp <- ssps[1]
 # var <- vrss[2]
-# prd <- prds[2]
+# prd <- prds[1]
 
 # Read monthly deltas
 get_daily_future_data <- function(gcm, ssp, var, prd){

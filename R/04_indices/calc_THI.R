@@ -18,6 +18,7 @@ calc_thi <- function(yr, mn){
   outfile2 <- paste0(out_dir,'/THI_max-',yr,'-',mn,'.tif')
   outfile3 <- paste0(out_dir,'/daily/THI_daily-',yr,'-',mn,'.tif')
   file.exists(c(outfile1,outfile2,outfile3))
+  cat(outfile2, "\n")
   if(sum(file.exists(c(outfile1,outfile2,outfile3))) < 3){
     dir.create(dirname(outfile3),F,T)
     # Last day of the month
@@ -35,7 +36,8 @@ calc_thi <- function(yr, mn){
       dts_chr <- as.character(dts)
       dts_chr <- gsub(pattern = yr, replacement = yrs_mpg$Baseline[yrs_mpg$Future == yr], x = dts_chr)
       dts_h <- as.Date(dts_chr); rm(dts_chr)
-      rh_fls <- paste0(rh_pth,'/',yr,'/RH.',gsub(pattern='-', replacement='.', x=dts_h, fixed=T),'.tif')
+      yr_h <- lubridate::year(dts_h)[1]
+      rh_fls <- paste0(rh_pth,'/',yr_h,'/RH.',gsub(pattern='-', replacement='.', x=dts_h, fixed=T),'.tif')
     } else {
       rh_fls <- paste0(rh_pth,'/',yr,'/RH.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
     }
@@ -63,38 +65,46 @@ calc_thi <- function(yr, mn){
   }
 }
 
-# Historical setup
-yrs <- 1995:2014
-mns <- c(paste0('0',1:9),10:12)
-stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-names(stp) <- c('yrs','mns')
-stp <- stp %>%
-  dplyr::arrange(yrs, mns) %>%
-  base::as.data.frame()
-tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-rh_pth <- paste0(root,'/chirts/RHum') # Relative humidity
-out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/THI')
-
-# # Future setup
-# gcm <- 'ACCESS-ESM1-5'
-# ssp <- 'ssp245'
-# prd <- '2021_2040'
-# 
-# cmb <- paste0(ssp,'_',gcm,'_',prd)
-# prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-# yrs <- prd_num[1]:prd_num[2]
+# # Historical setup
+# yrs <- 1995:2014
 # mns <- c(paste0('0',1:9),10:12)
 # stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
 # names(stp) <- c('yrs','mns')
 # stp <- stp %>%
 #   dplyr::arrange(yrs, mns) %>%
 #   base::as.data.frame()
-# tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
-# rh_pth <- paste0(root,'/chirts/RHum')                                   # Relative humidity
-# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/THI')
-# 
-# yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
-#                       Future = as.character(c(2021:2040,2041:2060)))
+# tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
+# rh_pth <- paste0(root,'/chirts/RHum') # Relative humidity
+# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/THI')
+# 1:nrow(stp) %>%
+#   purrr::map(.f = function(i){calc_thi(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
 
-1:nrow(stp) %>%
-  purrr::map(.f = function(i){calc_thi(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
+# Future setup
+#gcm <- 'ACCESS-ESM1-5'
+#ssp <- 'ssp245'
+#prd <- '2021_2040'
+
+for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
+    for (ssp in c('ssp245', 'ssp585')) {
+        for (prd in c('2021_2040', '2041_2060')) {
+            cmb <- paste0(ssp,'_',gcm,'_',prd)
+            prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+            yrs <- prd_num[1]:prd_num[2]
+            mns <- c(paste0('0',1:9),10:12)
+            stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+            names(stp) <- c('yrs','mns')
+            stp <- stp %>%
+              dplyr::arrange(yrs, mns) %>%
+              base::as.data.frame()
+            tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+            rh_pth <- paste0(root,'/chirts/RHum')                                   # Relative humidity
+            out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/THI')
+
+            yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
+                                  Future = as.character(c(2021:2040,2041:2060)))
+
+            1:nrow(stp) %>%
+              purrr::map(.f = function(i){calc_thi(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
+        }
+    }
+}
