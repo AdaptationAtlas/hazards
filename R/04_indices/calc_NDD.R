@@ -47,9 +47,9 @@ calc_ndd <- function(yr, mn){
 # out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDD')
 
 # Future setup
-gcm <- 'ACCESS-ESM1-5'
+gcm <- 'EC-Earth3'
 ssp <- 'ssp585'
-prd <- '2041_2060'
+prd <- '2021_2040'
 
 cmb <- paste0(ssp,'_',gcm,'_',prd)
 prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
