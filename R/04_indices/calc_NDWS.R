@@ -22,6 +22,7 @@ sst <- sst %>% terra::resample(ref) %>% terra::mask(ref)
 # Calculate NDWS function
 calc_ndws <- function(yr, mn){
   outfile <- paste0(out_dir,'/NDWS-',yr,'-',mn,'.tif')
+  cat(outfile, "\n")
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
