@@ -7,11 +7,21 @@ g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(library(pacman))
 suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate,envirem))
-source('https://raw.githubusercontent.com/CIAT-DAPA/agro-clim-indices/main/_main_functions.R')
+#source('https://raw.githubusercontent.com/CIAT-DAPA/agro-clim-indices/main/_main_functions.R')
 
 root <- '/home/jovyan/common_data'
 
 ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
+
+# ET SRAD, load and process only once
+srf <- list.dirs(paste0(root,'/ET_SolRad'), full.names = T, recursive = F)
+srf <- srf[-length(srf)]
+srf <- srf %>% gtools::mixedsort()
+srd <- srf %>% raster::stack()
+srd <- srd %>% raster::resample(raster::raster(ref))
+srd <- srd %>% raster::crop(raster(ref))
+srd <- srd %>% raster::mask(raster(ref))
+names(srd) <- c(paste0('SRAD_0',1:9),paste0('SRAD_', 10:12))
 
 # Calculate TAI function
 calc_tai <- function(yr){
@@ -21,6 +31,7 @@ calc_tai <- function(yr){
     dir.create(dirname(outfile),F,T)
     # Sequence of dates
     dts <- seq(from = as.Date(paste0(yr,'-01-01')), to = as.Date(paste0(yr,'-12-31')), by = 'day')
+    
     # Files
     pr_fls <- paste0(pr_pth,'/chirps-v2.0.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
     pr_fls <- pr_fls[file.exists(pr_fls)]
@@ -28,58 +39,75 @@ calc_tai <- function(yr){
     tx_fls <- tx_fls[file.exists(tx_fls)]
     tm_fls <- paste0(tm_pth,'/',yr,'/Tmin.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
     tm_fls <- tm_fls[file.exists(tm_fls)]
-    # Read variables
-    prc <- terra::rast(pr_fls)
-    prc <- prc %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
-    prc[prc == -9999] <- NA
-    tmx <- terra::rast(tx_fls)
-    tmx <- tmx %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
-    tmx[tmx == -9999] <- NA
-    tmn <- terra::rast(tm_fls)
-    tmn <- tmn %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
-    tmn[tmn == -9999] <- NA
-    # Calculate average temperature
-    tav <- (tmx + tmn)/2
-    # Calculate temperature range
-    rnge <- abs(tmx - tmn)
-    # Calculate monthly summaries
-    prc_month <- terra::tapp(x = prc, index = lubridate::month(dts), fun = sum)
-    tav_month <- terra::tapp(x = tav, index = lubridate::month(dts), fun = mean)
-    rng_month <- terra::tapp(x = rnge, index = lubridate::month(dts), fun = mean)
-    rm(prc, tav, rnge, tmx, tmn)
-    gc(verbose=F, full=T, reset=T)
-    # ET SRAD
-    srf <- list.dirs(paste0(root,'/ET_SolRad'), full.names = T, recursive = F)
-    srf <- srf[-length(srf)]
-    srf <- srf %>% gtools::mixedsort()
-    srd <- srf %>% raster::stack()
-    srd <- srd %>% raster::resample(raster::raster(ref))
-    srd <- srd %>% raster::crop(raster(ref))
-    srd <- srd %>% raster::mask(raster(ref))
-    names(srd) <- c(paste0('SRAD_0',1:9),paste0('SRAD_', 10:12))
+    
+    # Read variables, and calculate monthly summaries, do by month to reduce memory consumption
+    prc_ls <- tav_ls <- rng_ls <- c()
+    for (j in 1:12) {
+        mth_fls <- paste0(pr_pth, '/chirps-v2.0.', yr, '.', sprintf("%02.0f", j), ".", sprintf("%02.0f", 1:31), '.tif')
+        prc <- terra::rast(pr_fls[pr_fls %in% mth_fls])
+        prc <- prc %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+        prc[prc < 0] <- NA
+        prc_month <- sum(prc, na.rm=TRUE)
+        rm(prc)
+        gc(verbose=F, full=T, reset=T)
+        
+        mth_fls <- paste0(tx_pth, '/', yr, '/Tmax.', yr, '.', sprintf("%02.0f", j), ".", sprintf("%02.0f", 1:31), '.tif')
+        tmx <- terra::rast(tx_fls[tx_fls %in% mth_fls])
+        tmx <- tmx %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+        tmx[tmx == -9999] <- NA
+        
+        mth_fls <- paste0(tm_pth, '/', yr, '/Tmin.', yr, '.', sprintf("%02.0f", j), ".", sprintf("%02.0f", 1:31), '.tif')
+        tmn <- terra::rast(tm_fls[tm_fls %in% mth_fls])
+        tmn <- tmn %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+        tmn[tmn == -9999] <- NA
+
+        # Calculate average temperature
+        tav <- (tmx + tmn)/2
+        tav_month <- mean(tav, na.rm=TRUE)
+        rm(tav)
+        gc(verbose=F, full=T, reset=T)
+
+        # Calculate temperature range
+        rnge <- abs(tmx - tmn)
+        rng_month <- mean(rnge, na.rm=TRUE)
+        rm(rnge, tmx, tmn)
+        gc(verbose=F, full=T, reset=T)
+        
+        # Append
+        prc_ls <- c(prc_ls, prc_month)
+        tav_ls <- c(tav_ls, tav_month)
+        rng_ls <- c(rng_ls, rng_month)
+    }
     
     # Assign precipitation names in envirem environment
     envirem::assignNames(solrad='SRAD_##', tmean = 'TMEAN_##', precip = 'PREC_##')
     
-    TMEAN <- tav_month %>% raster::stack()
-    PREC  <- prc_month %>% raster::stack()
-    TRNG  <- rng_month %>% raster::stack()
+    TMEAN <- tav_ls %>% terra::rast() %>% raster::stack()
+    PREC  <- prc_ls %>% terra::rast() %>% raster::stack()
+    TRNG  <- rng_ls %>% terra::rast() %>% raster::stack()
     
     names(TMEAN) <- c(paste0('TMEAN_0',1:9),paste0('TMEAN_', 10:12))
     names(PREC)  <- c(paste0('PREC_0',1:9),paste0('PREC_', 10:12))
     names(TRNG)  <- c(paste0('TRNG_0',1:9),paste0('TRNG_', 10:12))
     
+    #clean up
+    rm(tav_ls, prc_ls, rng_ls, tav_month, prc_month, rng_month)
+    gc(verbose=F, full=T, reset=T)
+    
     # Thornthwaite's Aridity Index
     PET <- envirem::monthlyPET(TMEAN, srd, TRNG) %>% raster::stack()
-    rm(srd)
-    gc(verbose=F, full=T, reset=T)
     names(PET)  <- c(paste0('PET_0',1:9), paste0('PET_', 10:12))
     PET <- raster::resample(PET, PREC[[1]])
     TAI <- envirem::aridityIndexThornthwaite(PREC, PET)
     TAI <- terra::rast(TAI)
     names(TAI) <- yr
     
+    #write output
     terra::writeRaster(TAI, outfile)
+    
+    #clean up
+    rm(PET, TMEAN, PREC, TRNG, TAI)
+    gc(verbose=F, full=T, reset=T)
   }
 }
 
