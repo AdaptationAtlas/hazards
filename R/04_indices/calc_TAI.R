@@ -16,6 +16,7 @@ ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 # Calculate TAI function
 calc_tai <- function(yr){
   outfile <- paste0(out_dir,'/TAI-',yr,'.tif')
+  cat(outfile, "\n")
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Sequence of dates
@@ -45,8 +46,8 @@ calc_tai <- function(yr){
     prc_month <- terra::tapp(x = prc, index = lubridate::month(dts), fun = sum)
     tav_month <- terra::tapp(x = tav, index = lubridate::month(dts), fun = mean)
     rng_month <- terra::tapp(x = rnge, index = lubridate::month(dts), fun = mean)
-    rm(prc, tav, rnge)
-    gc(reset = T)
+    rm(prc, tav, rnge, tmx, tmn)
+    gc(verbose=F, full=T, reset=T)
     # ET SRAD
     srf <- list.dirs(paste0(root,'/ET_SolRad'), full.names = T, recursive = F)
     srf <- srf[-length(srf)]
@@ -71,7 +72,7 @@ calc_tai <- function(yr){
     # Thornthwaite's Aridity Index
     PET <- envirem::monthlyPET(TMEAN, srd, TRNG) %>% raster::stack()
     rm(srd)
-    gc(reset = T)
+    gc(verbose=F, full=T, reset=T)
     names(PET)  <- c(paste0('PET_0',1:9), paste0('PET_', 10:12))
     PET <- raster::resample(PET, PREC[[1]])
     TAI <- envirem::aridityIndexThornthwaite(PREC, PET)
@@ -82,26 +83,26 @@ calc_tai <- function(yr){
   }
 }
 
-# Historical setup
-stp <- data.frame(yrs = 1995:2014)
-pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
-tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
-tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TAI')
-out_dir <- '/home/jovyan/indices/historical/TAI'
+# # Historical setup
+# stp <- data.frame(yrs = 1995:2014)
+# pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
+# tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
+# tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
+# #out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TAI')
+# out_dir <- '/home/jovyan/indices/historical/TAI'
 
-# # Future setup
-# gcm <- 'ACCESS-ESM1-5'
-# ssp <- 'ssp245'
-# prd <- '2021_2040'
-# 
-# cmb <- paste0(ssp,'_',gcm,'_',prd)
-# prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-# stp <- data.frame(yrs = prd_num[1]:prd_num[2])
-# pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
-# tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
-# tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
-# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/TAI')
+# Future setup
+gcm <- 'ACCESS-ESM1-5'
+ssp <- 'ssp245'
+prd <- '2021_2040'
+
+cmb <- paste0(ssp,'_',gcm,'_',prd)
+prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+stp <- data.frame(yrs = prd_num[1]:prd_num[2])
+pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/TAI')
 
 1:nrow(stp) %>%
-  purrr::map(.f = function(i){calc_tai(yr = stp$yrs[i]); gc(verbose=F, full=T, reset=T)})
+  purrr::map(.f = function(i){calc_tai(yr = stp$yrs[i])})

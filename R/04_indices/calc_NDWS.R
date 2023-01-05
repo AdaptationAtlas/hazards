@@ -65,6 +65,8 @@ calc_ndws <- function(yr, mn){
     
     # Maximum evapotranspiration
     ETMAX <- terra::lapp(x = terra::sds(srd,tmn,tav,tmx), fun = peest)
+    rm(list=c("tmn", "tmx", "tav", "srd"))
+    gc(verbose=F, full=T, reset=T)
     
     # Compute water balance model
     date <- paste0(yr,'-',mn)
@@ -117,6 +119,10 @@ calc_ndws <- function(yr, mn){
     NDWS   <- terra::app(x = ERATIO, fun = function(ERATIO){ifelse(ERATIO < 0.5, 1, 0)}) %>% sum()
     terra::writeRaster(NDWS, outfile)
     terra::writeRaster(AVAIL[[terra::nlyr(AVAIL)]], paste0(dirname(outfile),'/AVAIL.tif'), overwrite = T)
+    
+    #clean up
+    rm(list=c("prc", "ETMAX", "AVAIL", "watbal", "ERATIO", "NDWS"))
+    gc(verbose=F, full=T, reset=T)
   }
 }
 
@@ -138,7 +144,7 @@ calc_ndws <- function(yr, mn){
 
 
 # Future setup
-#gcm <- 'ACCESS-ESM1-5' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+#gcm <- 'MPI-ESM1-2-HR' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
 for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
     for (ssp in c('ssp245', 'ssp585')) {
         for (prd in c('2021_2040', '2041_2060')) {
@@ -164,7 +170,7 @@ for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-E
                                   Future = as.character(c(2021:2040,2041:2060)))
 
             1:nrow(stp) %>%
-              purrr::map(.f = function(i){calc_ndws(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
+              purrr::map(.f = function(i){calc_ndws(yr = stp$yrs[i], mn = stp$mns[i])})
         }
     }
 }
