@@ -16,7 +16,7 @@ cat("gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "/ yr_i=", yr_i, "/ yr_f=", yr
 
 #how to run it: just paste the below in the console (modifying gcm, ssp, period, initial and end year)
 #Rscript --vanilla ~/Repositories/hazards/R/04_indices/calc_TAI_sh.R ACCESS-ESM1-5 ssp245 2021_2040 1 10
-#you can also write a bash (.sh) script with the list of jobs to run and execute it
+#you can also write a bash (.sh) script with the list of jobs to run and execute it.
 
 # R options
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
