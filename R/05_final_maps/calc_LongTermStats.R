@@ -42,7 +42,7 @@ r_pop <- terra::rast(paste0(wd, "/population_mask/pop_mask.tif"))
 #doensemble=TRUE will take all individual GCMs (in the case of rcp scenarios) and calculate the multi-model mean
 #omitcalendar=TRUE will omit the use of the maize crop calendar when calculating the annual mean
 continuous_map <- function(index="NDD", period="hist", scenario="historical", domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE) {
-  #index="NDD"; period="hist"; scenario="historical"; domean=TRUE; domedian=TRUE; domax=TRUE; doensemble=TRUE; omitcalendar=FALSE
+  #index="TAI"; period="hist"; scenario="historical"; domean=TRUE; domedian=TRUE; domax=TRUE; doensemble=TRUE; omitcalendar=FALSE
   
   #some consistency checks
   if (scenario == "historical" & period != "hist") {stop("error, historical scenario should go with hist period")}
@@ -88,12 +88,18 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     fls <- fls[grep(pattern = '.tif$', x = fls)]
     
     #names and indices for tapp
+    #get YEAR-MONTH name structure
     bname <- basename(fls) %>% 
-      gsub("NDD-", "", .) %>% 
+      gsub(paste0(index,"-"), "", .) %>% 
       gsub("\\.tif", "", .)
-    sumby <- bname %>%
-      substr(., 6, 7) %>%
-      as.numeric(.)
+    
+    #all indices except TAI are done by month, hence requiring long-term monthly means
+    #this extracts the month, which is used below in terra::tapp
+    if (index != "TAI") {
+      sumby <- bname %>%
+        substr(., 6, 7) %>%
+        as.numeric(.)
+    }
     
     #load all rasters
     r_data <- terra::rast(fls)
@@ -109,25 +115,33 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     
     #mean
     if (domean) {
-      r_month <- tapp(r_data, sumby, fun=mean, na.rm=TRUE, filename=paste0(out_dir, "/mean_monthly.tif"), overwrite=TRUE)
-      
-      #for maize heat stress index that uses growing season, divide by growing season length instead of normal mean
-      if (index == "HSM_NTx35" & !omitcalendar) {
-        r_cal <- terra::rast("~/common_data/atlas_crop_calendar/intermediate/mai_rf_ggcmi_crop_calendar_phase3_v1.01_Africa.tif")
-        r_cal <- r_cal[[3]] / 30
-        r_mean <- sum(r_month, na.rm=TRUE) / r_cal
+      if (index != "TAI") {
+        #calculate climatological mean of each month
+        r_month <- tapp(r_data, sumby, fun=mean, na.rm=TRUE, filename=paste0(out_dir, "/mean_monthly.tif"), overwrite=TRUE)
+        
+        #mask the climatological mean
+        r_monthk <- r_month %>%
+          terra::mask(., r_ref) %>%
+          terra::mask(., r_wbd, inverse=TRUE)
+        if (index == "THI") {r_monthk <- terra::mask(r_monthk, r_lstk)}
+        if (index %in% c("HSM_NTx35", "NTx35")) {r_monthk <- terra::mask(r_monthk, r_crop)}
+        if (index == "HSH") {r_monthk <- terra::mask(r_monthk, r_pop)}
+        terra::writeRaster(r_monthk, filename=paste0(out_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
+        
+        #calculate mean of all months (average of climatological means)
+        #for maize heat stress index that uses growing season, divide by growing season length instead of normal mean
+        if (index == "HSM_NTx35" & !omitcalendar) {
+          r_cal <- terra::rast("~/common_data/atlas_crop_calendar/intermediate/mai_rf_ggcmi_crop_calendar_phase3_v1.01_Africa.tif")
+          r_cal <- r_cal[[3]] / 30
+          r_mean <- sum(r_month, na.rm=TRUE) / r_cal
+        } else {
+          r_mean <- mean(r_month, na.rm=TRUE, filename=paste0(out_dir, "/mean_year.tif"), overwrite=TRUE)
+        }
       } else {
-        r_mean <- mean(r_month, na.rm=TRUE, filename=paste0(out_dir, "/mean_year.tif"), overwrite=TRUE)
+        r_mean <- mean(r_data, na.rm=TRUE, filename=paste0(out_dir, "/mean_year.tif"), overwrite=TRUE)
       }
       
-      r_monthk <- r_month %>%
-        terra::mask(., r_ref) %>%
-        terra::mask(., r_wbd, inverse=TRUE)
-      if (index == "THI") {r_monthk <- terra::mask(r_monthk, r_lstk)}
-      if (index %in% c("HSM_NTx35", "NTx35")) {r_monthk <- terra::mask(r_monthk, r_crop)}
-      if (index == "HSH") {r_monthk <- terra::mask(r_monthk, r_pop)}
-      terra::writeRaster(r_monthk, filename=paste0(out_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
-      
+      #mask the annual mean
       r_meank <- r_mean %>%
         terra::mask(., r_ref) %>%
         terra::mask(., r_wbd, inverse=TRUE)
@@ -138,8 +152,10 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
       
       #do ensemble
       if (doensemble & scenario %in% c("ssp245", "ssp585")) {
-        ens_meanmonth <- c(ens_meanmonth, r_month) 
-        ens_meanmonthk <- c(ens_meanmonthk, r_monthk)
+        if (index != "TAI") {
+          ens_meanmonth <- c(ens_meanmonth, r_month) 
+          ens_meanmonthk <- c(ens_meanmonthk, r_monthk)
+        }
         ens_meanyr <- c(ens_meanyr, r_mean)
         ens_meanyrk <- c(ens_meanyrk, r_meank)
       }
@@ -147,16 +163,25 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     
     #median
     if (domedian) {
-      r_emonth <- tapp(r_data, sumby, fun=median, na.rm=TRUE, filename=paste0(out_dir, "/median_monthly.tif"), overwrite=TRUE)
-      r_median <- median(r_emonth, na.rm=TRUE, filename=paste0(out_dir, "/median_year.tif"), overwrite=TRUE)
-      
-      r_emonthk <- r_emonth %>%
-        terra::mask(., r_ref) %>%
-        terra::mask(., r_wbd, inverse=TRUE)
-      if (index == "THI") {r_emonthk <- terra::mask(r_emonthk, r_lstk)}
-      if (index %in% c("HSM_NTx35", "NTx35")) {r_emonthk <- terra::mask(r_emonthk, r_crop)}
-      if (index == "HSH") {r_emonthk <- terra::mask(r_emonthk, r_pop)}
-      terra::writeRaster(r_emonthk, filename=paste0(out_dir, "/median_monthly_masked.tif"), overwrite=TRUE)
+      if (index != "TAI") {
+        #climatological median of each month
+        r_emonth <- tapp(r_data, sumby, fun=median, na.rm=TRUE, filename=paste0(out_dir, "/median_monthly.tif"), overwrite=TRUE)
+        
+        #annual median of all months
+        r_median <- median(r_emonth, na.rm=TRUE, filename=paste0(out_dir, "/median_year.tif"), overwrite=TRUE)
+        
+        #mask climatological monthly median
+        r_emonthk <- r_emonth %>%
+          terra::mask(., r_ref) %>%
+          terra::mask(., r_wbd, inverse=TRUE)
+        if (index == "THI") {r_emonthk <- terra::mask(r_emonthk, r_lstk)}
+        if (index %in% c("HSM_NTx35", "NTx35")) {r_emonthk <- terra::mask(r_emonthk, r_crop)}
+        if (index == "HSH") {r_emonthk <- terra::mask(r_emonthk, r_pop)}
+        terra::writeRaster(r_emonthk, filename=paste0(out_dir, "/median_monthly_masked.tif"), overwrite=TRUE)
+      } else {
+        #climatological median of annual quantity (for TAI)
+        r_median <- median(r_data, na.rm=TRUE, filename=paste0(out_dir, "/median_year.tif"), overwrite=TRUE)
+      }
       
       r_mediank <- r_median %>%
         terra::mask(., r_ref) %>%
@@ -168,17 +193,22 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
       
       #do ensemble
       if (doensemble & scenario %in% c("ssp245", "ssp585")) {
-        ens_emonth <- c(ens_emonth, r_emonth)
-        ens_emonthk <- c(ens_emonthk, r_emonthk)
+        if (index != "TAI") {
+          ens_emonth <- c(ens_emonth, r_emonth)
+          ens_emonthk <- c(ens_emonthk, r_emonthk)
+        }
         ens_medianyr <- c(ens_medianyr, r_median)
         ens_medianyrk <- c(ens_medianyrk, r_mediank)
       }
     }
     
-    #max
-    if (domax) {
+    #max. Note this statistic cannot be calculated for TAI since it does not have monthly values
+    if (domax & index != "TAI") {
       if (!file.exists(paste0(out_dir, "/mean_monthly.tif"))) {
+        #climatological mean of monthly values
         r_xmonth <- tapp(r_data, sumby, fun=mean, na.rm=TRUE, filename=paste0(out_dir, "/mean_monthly.tif"), overwrite=TRUE)
+        
+        #mask the climatological mean
         r_xmonthk <- r_xmonth %>%
           terra::mask(., r_ref) %>%
           terra::mask(., r_wbd, inverse=TRUE)
@@ -190,8 +220,11 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
         r_xmonth <- terra::rast(paste0(out_dir, "/mean_monthly.tif"))
         r_xmonthk <- terra::rast(paste0(out_dir, "/mean_monthly_masked.tif"))
       }
+      
+      #calculate maximum of all months using the climatological monthly means
       r_max <- max(r_xmonth, na.rm=TRUE, filename=paste0(out_dir, "/max_year.tif"), overwrite=TRUE)
       
+      #mask the annual maximum
       r_maxk <- r_max %>%
         terra::mask(., r_ref) %>%
         terra::mask(., r_wbd, inverse=TRUE)
@@ -218,10 +251,12 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     if (!file.exists(ens_dir)) {dir.create(ens_dir, recursive=TRUE)}
     
     if (domean) {
-      ens_meanmonth <- terra::rast(ens_meanmonth) %>%
-        terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly.tif"), overwrite=TRUE)
-      ens_meanmonthk <- terra::rast(ens_meanmonthk) %>%
-        terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
+      if (index != "TAI") {
+        ens_meanmonth <- terra::rast(ens_meanmonth) %>%
+          terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly.tif"), overwrite=TRUE)
+        ens_meanmonthk <- terra::rast(ens_meanmonthk) %>%
+          terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
+      }
       ens_meanyr <- terra::rast(ens_meanyr) %>%
         mean(., na.rm=TRUE, filename=paste0(ens_dir, "/mean_year.tif"), overwrite=TRUE)
       ens_meanyrk <- terra::rast(ens_meanyrk) %>%
@@ -229,17 +264,19 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     }
     
     if (domedian) {
-      ens_emonth <- terra::rast(ens_emonth) %>%
-        terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/median_monthly.tif"), overwrite=TRUE)
-      ens_emonthk <- terra::rast(ens_emonthk) %>%
-        terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/median_monthly_masked.tif"), overwrite=TRUE)
+      if (index != "TAI") {
+        ens_emonth <- terra::rast(ens_emonth) %>%
+          terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/median_monthly.tif"), overwrite=TRUE)
+        ens_emonthk <- terra::rast(ens_emonthk) %>%
+          terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/median_monthly_masked.tif"), overwrite=TRUE)
+      }
       ens_medianyr <- terra::rast(ens_medianyr) %>%
         mean(., na.rm=TRUE, filename=paste0(ens_dir, "/median_year.tif"), overwrite=TRUE)
       ens_medianyrk <- terra::rast(ens_medianyrk) %>%
         mean(., na.rm=TRUE, filename=paste0(ens_dir, "/median_year_masked.tif"), overwrite=TRUE)
     }
     
-    if (domax) {
+    if (domax & index != "TAI") {
       if (!domean) { #if domean we assume it has already been written
         ens_xmonth <- terra::rast(ens_xmonth) %>%
           terra::tapp(., rep(1:12, 5), fun=mean, na.rm=TRUE, filename=paste0(ens_dir, "/mean_monthly.tif"), overwrite=TRUE)
