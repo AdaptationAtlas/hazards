@@ -1,13 +1,27 @@
+#!/usr/bin Rscript
+args = commandArgs(trailingOnly=TRUE)
+
+gcm <- args[1]
+ssp <- args[2]
+prd <- args[3]
+yr_i <- as.numeric(args[4])
+yr_f <- as.numeric(args[5])
+
+#verbose what is being processed
+cat("gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "/ yr_i=", yr_i, "/ yr_f=", yr_f, "\n")
+
 ## Thornthwaite's Aridity Index (TAI)
-## By: H. Achicanoy
+## By: H. Achicanoy, modified by JRV so that it could be run via Rscript
 ## December, 2022
 
+#how to run it: just paste the below in the console (modifying gcm, ssp, period, initial and end year)
+#Rscript --vanilla ~/Repositories/hazards/R/04_indices/calc_TAI_sh.R ACCESS-ESM1-5 ssp245 2021_2040 1 10
+#you can also write a bash (.sh) script with the list of jobs to run and execute it.
+
 # R options
-#g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(library(pacman))
 suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate,envirem))
-#source('https://raw.githubusercontent.com/CIAT-DAPA/agro-clim-indices/main/_main_functions.R')
 
 root <- '/home/jovyan/common_data'
 
@@ -111,31 +125,18 @@ calc_tai <- function(yr){
   }
 }
 
-# # Historical setup
-# stp <- data.frame(yrs = 1995:2014)
-# pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
-# tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
-# tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TAI')
-# 1:nrow(stp) %>%
-#     purrr::map(.f = function(i){calc_tai(yr = stp$yrs[i])})
+# Options
+#'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+#'ssp245' 'ssp585'
+#'2021_2040' '2041_2060'
 
-# Future setup
-#gcm <- 'ACCESS-ESM1-5' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
-for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
-    for (ssp in c('ssp245', 'ssp585')) {
-        for (prd in c('2021_2040', '2041_2060')) {
-            #ssp <- 'ssp245'
-            #prd <- '2021_2040'
-            cmb <- paste0(ssp,'_',gcm,'_',prd)
-            prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-            stp <- data.frame(yrs = prd_num[1]:prd_num[2])
-            pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
-            tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
-            tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
-            out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/TAI')
-            yr_i:yr_f %>%
-              purrr::map(.f = function(i){calc_tai(yr = stp$yrs[i])})
-        }
-    }
-}
+# Run the function
+cmb <- paste0(ssp,'_',gcm,'_',prd)
+prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+stp <- data.frame(yrs = prd_num[1]:prd_num[2])
+pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/TAI')
+yr_i:yr_f %>%
+  purrr::map(.f = function(i){calc_tai(yr = stp$yrs[i])})
