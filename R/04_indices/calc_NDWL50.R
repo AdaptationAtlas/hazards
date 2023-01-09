@@ -22,6 +22,7 @@ sst <- sst %>% terra::resample(ref) %>% terra::mask(ref)
 # Calculate NDWS function
 calc_ndwl50 <- function(yr, mn){
   outfile <- paste0(out_dir,'/NDWL50-',yr,'-',mn,'.tif')
+  cat(outfile, "\n")
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
@@ -64,6 +65,8 @@ calc_ndwl50 <- function(yr, mn){
     
     # Maximum evapotranspiration
     ETMAX <- terra::lapp(x = terra::sds(srd,tmn,tav,tmx), fun = peest)
+    rm(list=c("tmn", "tmx", "tav", "srd"))
+    gc(verbose=F, full=T, reset=T)
     
     # Compute water balance model
     date <- paste0(yr,'-',mn)
@@ -117,6 +120,9 @@ calc_ndwl50 <- function(yr, mn){
     terra::writeRaster(NDWL50, outfile)
     terra::writeRaster(AVAIL[[terra::nlyr(AVAIL)]], paste0(dirname(outfile),'/AVAIL.tif'), overwrite = T)
     
+    #clean up
+    rm(list=c("prc", "ETMAX", "AVAIL", "watbal", "ERATIO", "LOGGING", "NDWL50"))
+    gc(verbose=F, full=T, reset=T)
   }
 }
 
@@ -133,29 +139,38 @@ calc_ndwl50 <- function(yr, mn){
 # tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
 # sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux') # Solar radiation
 # out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDWL50')
+# 1:nrow(stp) %>%
+#   purrr::map(.f = function(i){calc_ndwl50(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
+
 
 # Future setup
-gcm <- 'ACCESS-ESM1-5'
-ssp <- 'ssp245'
-prd <- '2021_2040'
+gcm <- 'MRI-ESM2-0' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+#for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
+    for (ssp in c('ssp245', 'ssp585')) {
+        for (prd in c('2021_2040', '2041_2060')) {
+            #ssp <- 'ssp245'
+            #prd <- '2021_2040'
+            
+            cmb <- paste0(ssp,'_',gcm,'_',prd)
+            prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+            yrs <- prd_num[1]:prd_num[2]
+            mns <- c(paste0('0',1:9),10:12)
+            stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+            names(stp) <- c('yrs','mns')
+            stp <- stp %>%
+              dplyr::arrange(yrs, mns) %>%
+              base::as.data.frame()
+            pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+            tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+            tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+            sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
+            out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWL50')
 
-cmb <- paste0(ssp,'_',gcm,'_',prd)
-prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-yrs <- prd_num[1]:prd_num[2]
-mns <- c(paste0('0',1:9),10:12)
-stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-names(stp) <- c('yrs','mns')
-stp <- stp %>%
-  dplyr::arrange(yrs, mns) %>%
-  base::as.data.frame()
-pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
-tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
-tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
-sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
-out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWL50')
+            yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
+                                  Future = as.character(c(2021:2040,2041:2060)))
 
-yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
-                      Future = as.character(c(2021:2040,2041:2060)))
-
-1:nrow(stp) %>%
-  purrr::map(.f = function(i){calc_ndwl50(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
+            1:nrow(stp) %>%
+              purrr::map(.f = function(i){calc_ndwl50(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
+        }
+    }
+#}
