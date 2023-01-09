@@ -107,7 +107,7 @@ category_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="his
 }
 
 #selected index
-indx <- "NDD" #NDD NTx40 HSM_NTx35
+indx <- "HSM_NTx35" #NDD NTx40 HSM_NTx35
 
 #historical
 for (stt in stat_list) {
