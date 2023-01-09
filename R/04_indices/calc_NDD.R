@@ -15,6 +15,7 @@ ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 # Calculate NDD function
 calc_ndd <- function(yr, mn){
   outfile <- paste0(out_dir,'/NDD-',yr,'-',mn,'.tif')
+  cat(outfile, "\n")
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
     # Last day of the month
@@ -47,9 +48,9 @@ calc_ndd <- function(yr, mn){
 # out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDD')
 
 # Future setup
-gcm <- 'EC-Earth3'
-ssp <- 'ssp585'
-prd <- '2021_2040'
+gcm <- 'MPI-ESM1-2-HR'
+ssp <- 'ssp245'
+prd <- '2041_2060'
 
 cmb <- paste0(ssp,'_',gcm,'_',prd)
 prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))

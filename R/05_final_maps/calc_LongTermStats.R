@@ -2,8 +2,8 @@
 #HA/JRV, Dec 2022
 
 # R options
-g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
-#options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
+rm(list = ls()) # Remove objects
+g <- gc(reset = T); rm(g) # Empty garbage collector
 
 #load packages
 library(terra)
@@ -36,13 +36,14 @@ r_lstk <- terra::rast(paste0(wd, "/livestock_mask/livestock_allspecies_mask.tif"
 r_pop <- terra::rast(paste0(wd, "/population_mask/pop_mask.tif"))
 
 ## Generate final continuous outputs
+#HS.stat is the statistic to be used for the HSH and THI (both which have mean and max for each month)
 #domean=TRUE will calculate the climatological mean of each month, and then the mean of the 12 months
 #domedian=TRUE will calculate the climatological median of each month, and then the median of the 12 months
 #domax=TRUE will calculate the climatological mean of each month, and then the max of all months
 #doensemble=TRUE will take all individual GCMs (in the case of rcp scenarios) and calculate the multi-model mean
 #omitcalendar=TRUE will omit the use of the maize crop calendar when calculating the annual mean
-continuous_map <- function(index="NDD", period="hist", scenario="historical", domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE) {
-  #index="TAI"; period="hist"; scenario="historical"; domean=TRUE; domedian=TRUE; domax=TRUE; doensemble=TRUE; omitcalendar=FALSE
+continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="historical", domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE) {
+  #index="HSM_NTx35"; HS.stat=NULL; period="hist"; scenario="historical"; domean=TRUE; domedian=TRUE; domax=TRUE; doensemble=TRUE; omitcalendar=FALSE
   
   #some consistency checks
   if (scenario == "historical" & period != "hist") {stop("error, historical scenario should go with hist period")}
@@ -76,8 +77,11 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
   #loop through the directories of interest
   for (i in 1:length(dir_names)) {
     #i <- 1
+    cat(dir_names[i], "\n")
+    
     #output file
     out_dir <- paste0(wd, "/cmip6/indices/", dir_names[i], "/", index, "/long_term_stats")
+    if (index %in% c("THI","HSH")) {out_dir <- paste0(out_dir, "_", HS.stat)}
     if (!file.exists(out_dir)) {dir.create(out_dir, recursive=TRUE)}
     
     #input directory
@@ -89,9 +93,17 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     
     #names and indices for tapp
     #get YEAR-MONTH name structure
-    bname <- basename(fls) %>% 
-      gsub(paste0(index,"-"), "", .) %>% 
-      gsub("\\.tif", "", .)
+    if (index %in% c("THI", "HSH")) {
+      fls <- fls[grep(pattern=HS.stat, x=fls)]
+      bname <- basename(fls) %>% 
+        gsub(paste0(index,"_",HS.stat,"-"), "", .) %>% 
+        gsub("\\.tif", "", .)
+    } else {
+      bname <- basename(fls) %>% 
+        gsub(paste0(index,"-"), "", .) %>% 
+        gsub("\\.tif", "", .)
+    }
+    if (index == "HSM_NTx35") {bname <- gsub("GSeason_", "", bname)}
     
     #all indices except TAI are done by month, hence requiring long-term monthly means
     #this extracts the month, which is used below in terra::tapp
@@ -115,6 +127,7 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     
     #mean
     if (domean) {
+      cat("  ...calculating mean\n")
       if (index != "TAI") {
         #calculate climatological mean of each month
         r_month <- tapp(r_data, sumby, fun=mean, na.rm=TRUE, filename=paste0(out_dir, "/mean_monthly.tif"), overwrite=TRUE)
@@ -134,6 +147,7 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
           r_cal <- terra::rast("~/common_data/atlas_crop_calendar/intermediate/mai_rf_ggcmi_crop_calendar_phase3_v1.01_Africa.tif")
           r_cal <- r_cal[[3]] / 30
           r_mean <- sum(r_month, na.rm=TRUE) / r_cal
+          terra::writeRaster(r_mean, paste0(out_dir, "/mean_year.tif"), overwrite=TRUE)
         } else {
           r_mean <- mean(r_month, na.rm=TRUE, filename=paste0(out_dir, "/mean_year.tif"), overwrite=TRUE)
         }
@@ -163,6 +177,7 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     
     #median
     if (domedian) {
+      cat("  ...calculating median\n")
       if (index != "TAI") {
         #climatological median of each month
         r_emonth <- tapp(r_data, sumby, fun=median, na.rm=TRUE, filename=paste0(out_dir, "/median_monthly.tif"), overwrite=TRUE)
@@ -204,6 +219,7 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
     
     #max. Note this statistic cannot be calculated for TAI since it does not have monthly values
     if (domax & index != "TAI") {
+      cat("  ...calculating max\n")
       if (!file.exists(paste0(out_dir, "/mean_monthly.tif"))) {
         #climatological mean of monthly values
         r_xmonth <- tapp(r_data, sumby, fun=mean, na.rm=TRUE, filename=paste0(out_dir, "/mean_monthly.tif"), overwrite=TRUE)
@@ -246,8 +262,10 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
   ###
   #calculate ensemble
   if (scenario %in% c("ssp245", "ssp585") & doensemble) {
+    cat("calculating ensemble \n")
     #output folder for ensemble calculation
     ens_dir <- paste0(wd, "/cmip6/indices/", scenario, "_ENSEMBLE_", min(years), "_", max(years), "/", index)
+    if (index %in% c("THI", "HSH")) {ens_dir <- paste0(ens_dir, "_", HS.stat)}
     if (!file.exists(ens_dir)) {dir.create(ens_dir, recursive=TRUE)}
     
     if (domean) {
@@ -292,5 +310,28 @@ continuous_map <- function(index="NDD", period="hist", scenario="historical", do
   return("Done\n")
 }
 
-
-
+#run function
+for (indx in indx_list) {
+  #indx <- indx_list[4]
+  cat("processing index=", indx, "\n")
+  
+  #run historical period first
+  if (indx %in% c("HSH", "THI")) {
+    continuous_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+    continuous_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+  } else {
+    continuous_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+  }
+  
+  #now run future
+  for (sce in sce_list[2:3]) {
+    for (prd in period_list[2:3]) {
+      if (indx %in% c("HSH", "THI")) {
+        continuous_map(index=indx, HS.stat="max", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+        continuous_map(index=indx, HS.stat="mean", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+      } else {
+        continuous_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+      }
+    }
+  }
+}

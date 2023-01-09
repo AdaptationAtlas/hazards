@@ -2,8 +2,8 @@
 #HA/JRV, Dec 2022
 
 # R options
-g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
-#options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
+rm(list = ls()) # Remove objects
+g <- gc(reset = T); rm(g) # Empty garbage collector
 
 #load packages
 library(terra)
@@ -36,8 +36,8 @@ stat_list <- c("mean_year", "max_year", "median_year")
 source("~/Repositories/hazards/R/05_final_maps/makeClassTable.R")
 
 #generate final categorical maps
-category_map <- function(index="NDD", period="hist", scenario="historical", gcm="CMIP6_ENSEMBLE", stat="max_year"){
-  #index="NDD"; period="hist"; scenario="historical"; gcm="CMIP6_ENSEMBLE"; stat="mean_year"
+category_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="historical", gcm="CMIP6_ENSEMBLE", stat="max_year"){
+  #index="HSH"; HS.stat="max"; period="hist"; scenario="historical"; gcm="CMIP6_ENSEMBLE"; stat="mean_year"
   
   #create class table
   class_tb <- make_class_tb()
@@ -65,8 +65,23 @@ category_map <- function(index="NDD", period="hist", scenario="historical", gcm=
   }
   
   #input file, both unmasked and masked
-  infile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/", stat, c(".tif", "_masked.tif"))
-  outfile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/", stat, c("", "_masked"), "_categorical.tif")
+  if (gcm == "CMIP6_ENSEMBLE" & scenario != "historical") {
+    if (index %in% c("HSH", "THI")) {
+      infile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "_", HS.stat, "/", stat, c(".tif", "_masked.tif"))
+      outfile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "_", HS.stat, "/", stat, c("", "_masked"), "_categorical.tif")
+    } else {
+      infile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/", stat, c(".tif", "_masked.tif"))
+      outfile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/", stat, c("", "_masked"), "_categorical.tif")
+    }
+  } else {
+    if (index %in% c("HSH", "THI")) {
+      infile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/long_term_stats_", HS.stat, "/", stat, c(".tif", "_masked.tif"))
+      outfile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/long_term_stats_", HS.stat, "/", stat, c("", "_masked"), "_categorical.tif")
+    } else {
+      infile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/long_term_stats/", stat, c(".tif", "_masked.tif"))
+      outfile <- paste0(wd, "/cmip6/indices/", dir_names, "/", index, "/long_term_stats/", stat, c("", "_masked"), "_categorical.tif")
+    }
+  }
   
   #load raster
   r_in <- terra::rast(infile)
@@ -91,3 +106,32 @@ category_map <- function(index="NDD", period="hist", scenario="historical", gcm=
   return("Done\n")
 }
 
+#selected index
+indx <- "NDD" #NDD NTx40 HSM_NTx35
+
+#historical
+for (stt in stat_list) {
+  if (indx %in% c("HSH", "THI")) {
+    category_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
+    category_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
+  } else {
+    category_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
+  }
+}
+
+#future
+for (i in 1:length(gcm_list)) {
+  cat(gcm_list[i], "\n")
+  for (prd in period_list[2:3]) {
+    for (sce in sce_list[2:3]) {
+      for (stt in stat_list) {
+        if (indx %in% c("HSH", "THI")) {
+          category_map(index=indx, HS.stat="max", period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
+          category_map(index=indx, HS.stat="mean", period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
+        } else {
+          category_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
+        }
+      }
+    }
+  }
+}
