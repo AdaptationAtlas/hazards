@@ -1,4 +1,4 @@
-#Create Atlas metadata for HSM_NTx35: number of heat stress days for maize
+#Create Atlas metadata for NTx40: total number of heat stress days per month
 #also creates a single uploadable dataset for the S3/Google buckets.
 #JRV, Jan 2023
 
@@ -25,8 +25,8 @@ full_tb <- expand.grid(per=periods, ssp=ssps, gcm=gcms) %>%
   dplyr::mutate(fullname=paste0(.$ssp, "_", .$gcm, "_", .$per))
 
 #directories
-his_dir <- paste0(wd, "/indices/historical/HSM_NTx35")
-ssp_dir <- paste0(wd, "/indices/", full_tb$fullname, "/HSM_NTx35")
+his_dir <- paste0(wd, "/indices/historical/NTx35")
+ssp_dir <- paste0(wd, "/indices/", full_tb$fullname, "/NTx35")
 meta_dir <- paste0(wd, "/metadata")
 if (!file.exists(meta_dir)) {dir.create(meta_dir)}
 buck_dir <- paste0(wd, "/bucket_upload")
@@ -49,28 +49,26 @@ r_data <- terra::rast(fls)
 #give appropriate names to the layers
 fnames <- gsub(pattern=paste0(wd, "/indices/"), replacement="", x=fls)
 fnames <- gsub(pattern="_year_masked", replacement="", x=fnames)
-fnames <- gsub(pattern="/HSM_NTx35/long_term_stats", replacement="", x=fnames)
-fnames <- gsub(pattern="/HSM_NTx35", replacement="", x=fnames)
+fnames <- gsub(pattern="/NTx35/long_term_stats", replacement="", x=fnames)
+fnames <- gsub(pattern="/NTx35", replacement="", x=fnames)
 names(r_data) <- fnames
 
 #write metadata
-hsm_meta <- atlas_metadata(data = r_data,
+ntx_meta <- atlas_metadata(data = r_data,
                            folder = meta_dir,
-                           dataset.title_short = "HSM_NTx35",
-                           dataset.title_long = "Total number of heat stress days per month for maize",
-                           dataset.desc = "The number of days with daily maximum temperatures above a given threshold during the growing season. To compute this, we use a maize crop calendar, and focus on the main growing season. Cropping calendars are taken from Jagermeyr et al. (2022), which is a modified version of Sacks et al. (2010). For maize, we use a temperature threshold of 35ºC, and assume that at this temperature heat stress starts affecting maize plants.",
+                           dataset.title_short = "NTx35",
+                           dataset.title_long = "Total number of heat stress days per month for maize, without specification of growing season",
+                           dataset.desc = "The number of days with daily maximum temperatures above a given threshold (35 Celsius degrees). Although no crop calendar is used (i.e., we calculate it for the whole year), this heat stress measure applies for maize, as we use a threshold of Tmax above which temperature will start to be detrimental to maize.",
                            dataset.author = "Ramirez-Villegas",
                            dataset.contact = "Julian Ramirez-Villegas",
                            dataset.contact_email = "j.r.villegas@cgiar.org",
-                           dataset.pub_doi = list(dataset.pub_doi1="10.1038/s43016-021-00400-y",
-                                                  dataset.pub_doi2="10.1175/JCLI-D-18-0698.1",
-                                                  dataset.pub_doi3="10.1111/j.1466-8238.2010.00551.x"),
+                           dataset.pub_doi = "10.1175/JCLI-D-18-0698.1",
                            dataset.data_doi = NA,
                            dataset.sourceurl = NA,
                            dataset.projecturl = "http://adaptationatlas.cgiar.org",
-                           dataset.citation = "Ramirez-Villegas, J., Achicanoy, H. 2023. CMIP6 climate hazards: number of heat stress days for maize during the growing season. CGIAR. Dataset.",
+                           dataset.citation = "Ramirez-Villegas, J., Achicanoy, H. 2023. CMIP6 climate hazards: number of heat stress days (generic crop). CGIAR. Dataset.",
                            dataset.licence = "CC-BY-4.0",
-                           file.filename = "HSM_NTx35.tif",
+                           file.filename = "NTx35.tif",
                            file.format = "GeoTiff",
                            file.data_type = list(file.data_type1="float", 
                                                  file.data_type2="integer"),
@@ -79,7 +77,7 @@ hsm_meta <- atlas_metadata(data = r_data,
                            file.flags = NA,
                            variable.theme = "hazards",
                            variable.subtheme = "heat stress",
-                           variable.name = "number of heat stress days for maize",
+                           variable.name = "number of heat stress days for maize (no growing season)",
                            variable.subname = "count of month",
                            variable.commodity = NA,
                            variable.type = list(variable.type1="continuous", 
@@ -89,7 +87,7 @@ hsm_meta <- atlas_metadata(data = r_data,
                                                      variable.statistic3="max"),
                            variable.unit = "days",
                            method.analysis_type = "count of days",
-                           method.description = "The number of days with daily maximum temperatures above 35 Celsius degrees during the growing season. To compute this, we use a maize crop calendar, and focus on the main growing season.",
+                           method.description = "The number of days with daily maximum temperatures above 35 Celsius degrees per month. To compute this, no crop calendar is used. A simple count of days is made per month for all cropping areas of SSA, using the CHIRTS dataset as input.",
                            method.github = "https://github.com/AdaptationAtlas/hazards",
                            method.qual_indicator = NA,
                            method.qual_availability = NA,
@@ -114,15 +112,15 @@ hsm_meta <- atlas_metadata(data = r_data,
                            data.shapefile_description = NA)
 
 #write a plain text file with the information in the metadata object
-out_file <- file(paste0(meta_dir,"/HSM_NTx35.txt"), open="w")
-for (i in 1:ncol(hsm_meta)) {
-  writeLines(text=names(hsm_meta)[i], con=out_file)
-  writeLines(text=paste0(hsm_meta[1,i], "\n"), con=out_file)
+out_file <- file(paste0(meta_dir,"/NTx35.txt"), open="w")
+for (i in 1:ncol(ntx_meta)) {
+  writeLines(text=names(ntx_meta)[i], con=out_file)
+  writeLines(text=paste0(ntx_meta[1,i], "\n"), con=out_file)
 }
 writeLines(text="Full list of layer names within file:", con=out_file)
 writeLines(names(r_data), con=out_file)
 close(con=out_file)
 
 #write bucket transfer file
-terra::writeRaster(r_data, paste0(buck_dir, "/HSM_NTx35.tiff"), overwrite=TRUE)
+terra::writeRaster(r_data, paste0(buck_dir, "/NTx35.tiff"), overwrite=TRUE)
 

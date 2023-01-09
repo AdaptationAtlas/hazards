@@ -311,27 +311,25 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
 }
 
 #run function
-for (indx in indx_list) {
-  #indx <- indx_list[4]
-  cat("processing index=", indx, "\n")
-  
-  #run historical period first
-  if (indx %in% c("HSH", "THI")) {
-    continuous_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
-    continuous_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
-  } else {
-    continuous_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
-  }
-  
-  #now run future
-  for (sce in sce_list[2:3]) {
-    for (prd in period_list[2:3]) {
-      if (indx %in% c("HSH", "THI")) {
-        continuous_map(index=indx, HS.stat="max", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
-        continuous_map(index=indx, HS.stat="mean", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
-      } else {
-        continuous_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
-      }
+indx <- indx_list[9]
+cat("processing index=", indx, "\n")
+
+#run historical period first
+if (indx %in% c("HSH", "THI")) {
+  continuous_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+  continuous_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+} else {
+  continuous_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+}
+
+#now run future
+for (sce in sce_list[2:3]) {
+  for (prd in period_list[2:3]) {
+    if (indx %in% c("HSH", "THI")) {
+      continuous_map(index=indx, HS.stat="max", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+      continuous_map(index=indx, HS.stat="mean", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+    } else {
+      continuous_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
     }
   }
 }

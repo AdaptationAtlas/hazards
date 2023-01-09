@@ -37,7 +37,7 @@ source("~/Repositories/hazards/R/05_final_maps/makeClassTable.R")
 
 #generate final categorical maps
 category_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="historical", gcm="CMIP6_ENSEMBLE", stat="max_year"){
-  #index="HSH"; HS.stat="max"; period="hist"; scenario="historical"; gcm="CMIP6_ENSEMBLE"; stat="mean_year"
+  #index="TAI"; HS.stat=NULL; period="near"; scenario="ssp245"; gcm="CMIP6_ENSEMBLE"; stat="mean_year"
   
   #create class table
   class_tb <- make_class_tb()
@@ -107,7 +107,8 @@ category_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="his
 }
 
 #selected index
-indx <- "HSM_NTx35" #NDD NTx40 HSM_NTx35
+indx <- indx_list[9]
+cat("processing index=", indx, "\n")
 
 #historical
 for (stt in stat_list) {
@@ -115,7 +116,11 @@ for (stt in stat_list) {
     category_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
     category_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
   } else {
-    category_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
+    if (indx == "TAI") {
+      if (stt != "max_year") {category_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)}
+    } else {
+      category_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
+    }
   }
 }
 
@@ -129,7 +134,11 @@ for (i in 1:length(gcm_list)) {
           category_map(index=indx, HS.stat="max", period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
           category_map(index=indx, HS.stat="mean", period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
         } else {
-          category_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
+          if (indx == "TAI") {
+            if (stt != "max_year") {category_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)}
+          } else {
+            category_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
+          }
         }
       }
     }

@@ -1,4 +1,4 @@
-#Create Atlas metadata for HSM_NTx35: number of heat stress days for maize
+#Create Atlas metadata for TAI: Thornthwaite's Aridity Index
 #also creates a single uploadable dataset for the S3/Google buckets.
 #JRV, Jan 2023
 
@@ -25,16 +25,15 @@ full_tb <- expand.grid(per=periods, ssp=ssps, gcm=gcms) %>%
   dplyr::mutate(fullname=paste0(.$ssp, "_", .$gcm, "_", .$per))
 
 #directories
-his_dir <- paste0(wd, "/indices/historical/HSM_NTx35")
-ssp_dir <- paste0(wd, "/indices/", full_tb$fullname, "/HSM_NTx35")
+his_dir <- paste0(wd, "/indices/historical/TAI")
+ssp_dir <- paste0(wd, "/indices/", full_tb$fullname, "/TAI")
 meta_dir <- paste0(wd, "/metadata")
 if (!file.exists(meta_dir)) {dir.create(meta_dir)}
 buck_dir <- paste0(wd, "/bucket_upload")
 if (!file.exists(buck_dir)) {dir.create(buck_dir)}
 
 #files to load
-fls <- c("max_year_masked.tif", "max_year_masked_categorical.tif", 
-         "mean_year_masked.tif", "mean_year_masked_categorical.tif",
+fls <- c("mean_year_masked.tif", "mean_year_masked_categorical.tif",
          "median_year_masked.tif", "median_year_masked_categorical.tif")
 
 #this expands the list of files
@@ -49,28 +48,28 @@ r_data <- terra::rast(fls)
 #give appropriate names to the layers
 fnames <- gsub(pattern=paste0(wd, "/indices/"), replacement="", x=fls)
 fnames <- gsub(pattern="_year_masked", replacement="", x=fnames)
-fnames <- gsub(pattern="/HSM_NTx35/long_term_stats", replacement="", x=fnames)
-fnames <- gsub(pattern="/HSM_NTx35", replacement="", x=fnames)
+fnames <- gsub(pattern="/TAI/long_term_stats", replacement="", x=fnames)
+fnames <- gsub(pattern="/TAI", replacement="", x=fnames)
 names(r_data) <- fnames
 
 #write metadata
-hsm_meta <- atlas_metadata(data = r_data,
+tai_meta <- atlas_metadata(data = r_data,
                            folder = meta_dir,
-                           dataset.title_short = "HSM_NTx35",
-                           dataset.title_long = "Total number of heat stress days per month for maize",
-                           dataset.desc = "The number of days with daily maximum temperatures above a given threshold during the growing season. To compute this, we use a maize crop calendar, and focus on the main growing season. Cropping calendars are taken from Jagermeyr et al. (2022), which is a modified version of Sacks et al. (2010). For maize, we use a temperature threshold of 35ºC, and assume that at this temperature heat stress starts affecting maize plants.",
+                           dataset.title_short = "TAI",
+                           dataset.title_long = "Thornthwaite's Aridity Index",
+                           dataset.desc = "Thornwaite aridity index = 100 * (d / n), where d = sum of monthly differences between prec and PET for months where precip < PET, and n = sum of monthly PET for those months. Note this index is calculated using the ENVIREM R package directly. ENVIREM takes a global solar radiation estimate (available at https://www.dropbox.com/sh/e5is592zafvovwf/AAAijCvHNiE4mYvYqWDpeJ3Ga/Global%20PET%20and%20Aridity%20Index?dl=0&lst=) to compute PET, and then uses that and precipitation to compute the Thornthwaite Aridity Index.",
                            dataset.author = "Ramirez-Villegas",
                            dataset.contact = "Julian Ramirez-Villegas",
                            dataset.contact_email = "j.r.villegas@cgiar.org",
-                           dataset.pub_doi = list(dataset.pub_doi1="10.1038/s43016-021-00400-y",
-                                                  dataset.pub_doi2="10.1175/JCLI-D-18-0698.1",
-                                                  dataset.pub_doi3="10.1111/j.1466-8238.2010.00551.x"),
+                           dataset.pub_doi = list(dataset.pub_doi1="10.1175/JCLI-D-18-0698.1",
+                                                  dataset.pub_doi2="10.1038/sdata.2015.66",
+                                                  dataset.pub_doi3="10.1111/ecog.02880"),
                            dataset.data_doi = NA,
                            dataset.sourceurl = NA,
                            dataset.projecturl = "http://adaptationatlas.cgiar.org",
-                           dataset.citation = "Ramirez-Villegas, J., Achicanoy, H. 2023. CMIP6 climate hazards: number of heat stress days for maize during the growing season. CGIAR. Dataset.",
+                           dataset.citation = "Ramirez-Villegas, J., Achicanoy, H. 2023. CMIP6 climate hazards: Thornthwaite's Aridity Index. CGIAR. Dataset.",
                            dataset.licence = "CC-BY-4.0",
-                           file.filename = "HSM_NTx35.tif",
+                           file.filename = "TAI.tif",
                            file.format = "GeoTiff",
                            file.data_type = list(file.data_type1="float", 
                                                  file.data_type2="integer"),
@@ -78,18 +77,17 @@ hsm_meta <- atlas_metadata(data = r_data,
                            file.file_naming_convention = "for each layer: [scenario]_[model/ENSEMBLE]_[period]/[statistic]_[categorical].tif",
                            file.flags = NA,
                            variable.theme = "hazards",
-                           variable.subtheme = "heat stress",
-                           variable.name = "number of heat stress days for maize",
-                           variable.subname = "count of month",
+                           variable.subtheme = "drought stress",
+                           variable.name = "Thornthwaite's Aridity Index",
+                           variable.subname = NA,
                            variable.commodity = NA,
                            variable.type = list(variable.type1="continuous", 
                                                 variable.type2="categorical"),
                            variable.statistic = list(variable.statistic1="mean", 
-                                                     variable.statistic2="median", 
-                                                     variable.statistic3="max"),
-                           variable.unit = "days",
-                           method.analysis_type = "count of days",
-                           method.description = "The number of days with daily maximum temperatures above 35 Celsius degrees during the growing season. To compute this, we use a maize crop calendar, and focus on the main growing season.",
+                                                     variable.statistic2="median"),
+                           variable.unit = "%",
+                           method.analysis_type = "simple water balance, empirical equations",
+                           method.description = "Thornwaite aridity index = 100 * (d / n), where d = sum of monthly differences between prec and PET for months where precip < PET, and n = sum of monthly PET for those months. Note this index is calculated using the ENVIREM R package directly. ENVIREM takes a global solar radiation estimate (available at https://www.dropbox.com/sh/e5is592zafvovwf/AAAijCvHNiE4mYvYqWDpeJ3Ga/Global%20PET%20and%20Aridity%20Index?dl=0&lst=) to compute PET, and then uses that and precipitation to compute the Thornthwaite Aridity Index.",
                            method.github = "https://github.com/AdaptationAtlas/hazards",
                            method.qual_indicator = NA,
                            method.qual_availability = NA,
@@ -114,15 +112,15 @@ hsm_meta <- atlas_metadata(data = r_data,
                            data.shapefile_description = NA)
 
 #write a plain text file with the information in the metadata object
-out_file <- file(paste0(meta_dir,"/HSM_NTx35.txt"), open="w")
-for (i in 1:ncol(hsm_meta)) {
-  writeLines(text=names(hsm_meta)[i], con=out_file)
-  writeLines(text=paste0(hsm_meta[1,i], "\n"), con=out_file)
+out_file <- file(paste0(meta_dir,"/TAI.txt"), open="w")
+for (i in 1:ncol(tai_meta)) {
+  writeLines(text=names(tai_meta)[i], con=out_file)
+  writeLines(text=paste0(tai_meta[1,i], "\n"), con=out_file)
 }
 writeLines(text="Full list of layer names within file:", con=out_file)
 writeLines(names(r_data), con=out_file)
 close(con=out_file)
 
 #write bucket transfer file
-terra::writeRaster(r_data, paste0(buck_dir, "/HSM_NTx35.tiff"), overwrite=TRUE)
+terra::writeRaster(r_data, paste0(buck_dir, "/TAI.tiff"), overwrite=TRUE)
 
