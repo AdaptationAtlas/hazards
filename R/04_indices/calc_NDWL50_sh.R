@@ -1,9 +1,19 @@
+#!/usr/bin Rscript
+args = commandArgs(trailingOnly=TRUE)
+
+gcm <- args[1]
+ssp <- args[2]
+prd <- args[3]
+pyr <- as.numeric(args[4])
+
+#verbose what is being processed
+cat("gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "/ year=", pyr, "\n")
+
 ## Number of waterlogging days (NDWL50)
-## By: H. Achicanoy
+## By: H. Achicanoy, modified by JRV to work under a bash script
 ## December, 2022
 
 # R options
-g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(library(pacman))
 suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate))
@@ -126,51 +136,33 @@ calc_ndwl50 <- function(yr, mn){
   }
 }
 
-# # Historical setup
-# yrs <- 1995:2014
-# mns <- c(paste0('0',1:9),10:12)
-# stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-# names(stp) <- c('yrs','mns')
-# stp <- stp %>%
-#   dplyr::arrange(yrs, mns) %>%
-#   base::as.data.frame()
-# pr_pth <- paste0(root,'/chirps_wrld') # Precipitation
-# tm_pth <- paste0(root,'/chirts/Tmin') # Minimum temperature
-# tx_pth <- paste0(root,'/chirts/Tmax') # Maximum temperature
-# sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux') # Solar radiation
-# out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDWL50')
-# 1:nrow(stp) %>%
-#   purrr::map(.f = function(i){calc_ndwl50(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
-
-
 # Future setup
-gcm <- 'INM-CM5-0' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
-#for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
-    for (ssp in c('ssp245', 'ssp585')) {
-        for (prd in c('2021_2040', '2041_2060')) {
-            #ssp <- 'ssp245'
-            #prd <- '2021_2040'
-            
-            cmb <- paste0(ssp,'_',gcm,'_',prd)
-            prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-            yrs <- prd_num[1]:prd_num[2]
-            mns <- c(paste0('0',1:9),10:12)
-            stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-            names(stp) <- c('yrs','mns')
-            stp <- stp %>%
-              dplyr::arrange(yrs, mns) %>%
-              base::as.data.frame()
-            pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
-            tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
-            tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
-            sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
-            out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWL50')
+#'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+#'ssp245' 'ssp585'
+#'2021_2040' '2041_2060'
 
-            yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
-                                  Future = as.character(c(2021:2040,2041:2060)))
+cmb <- paste0(ssp,'_',gcm,'_',prd)
+prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+yrs <- prd_num[1]:prd_num[2]
+mns <- c(paste0('0',1:9),10:12)
+stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+names(stp) <- c('yrs','mns')
+stp <- stp %>%
+  dplyr::arrange(yrs, mns) %>%
+  base::as.data.frame()
+pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWL50')
 
-            1:nrow(stp) %>%
-              purrr::map(.f = function(i){calc_ndwl50(yr = stp$yrs[i], mn = stp$mns[i]); gc(verbose=F, full=T, reset=T)})
-        }
-    }
-#}
+yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
+                      Future = as.character(c(2021:2040,2041:2060)))
+
+#identify row corresponding to last month of target year
+whichyear <- c(prd_num[1]:prd_num[2])[pyr]
+whichrow <- nrow(stp[which(stp$yrs %in% c(prd_num[1]:whichyear)),])
+
+#run the function for that year (assumes the years before are already processed)
+1:whichrow %>%
+  purrr::map(.f = function(i){calc_ndwl50(yr = stp$yrs[i], mn = stp$mns[i])})
