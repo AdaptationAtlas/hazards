@@ -26,6 +26,7 @@ fls <- list.files(paste0(wd, "/bucket_upload"), full.names = TRUE)
 1:length(fls) %>% 
   purrr::map(.f = function(i) {
     objname <- paste0(bk_name, "cmip6_hazards/datasets/", basename(fls[i]))
+    cat("uploading", objname, "\n")
     cp_file <- system(paste0("gsutil cp ", fls[i], " ", objname), intern=TRUE)
   })
 

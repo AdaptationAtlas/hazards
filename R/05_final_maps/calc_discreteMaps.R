@@ -107,7 +107,7 @@ category_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="his
 }
 
 #selected index
-indx <- indx_list[9]
+indx <- indx_list[6]
 cat("processing index=", indx, "\n")
 
 #historical

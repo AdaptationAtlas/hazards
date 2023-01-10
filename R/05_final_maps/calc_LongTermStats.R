@@ -43,7 +43,7 @@ r_pop <- terra::rast(paste0(wd, "/population_mask/pop_mask.tif"))
 #doensemble=TRUE will take all individual GCMs (in the case of rcp scenarios) and calculate the multi-model mean
 #omitcalendar=TRUE will omit the use of the maize crop calendar when calculating the annual mean
 continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="historical", domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE) {
-  #index="HSM_NTx35"; HS.stat=NULL; period="hist"; scenario="historical"; domean=TRUE; domedian=TRUE; domax=TRUE; doensemble=TRUE; omitcalendar=FALSE
+  #index="NDWS"; HS.stat=NULL; period="hist"; scenario="historical"; domean=TRUE; domedian=TRUE; domax=TRUE; doensemble=TRUE; omitcalendar=FALSE
   
   #some consistency checks
   if (scenario == "historical" & period != "hist") {stop("error, historical scenario should go with hist period")}
@@ -90,6 +90,7 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
     #list files
     fls <- list.files(path = in_dir, pattern = "\\.tif", full.names = TRUE)
     fls <- fls[grep(pattern = '.tif$', x = fls)]
+    if (index %in% c("NDWS", "NDWL50")) {fls <- fls[-grep(pattern="AVAIL.tif", x=fls)]}
     
     #names and indices for tapp
     #get YEAR-MONTH name structure
@@ -311,7 +312,7 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
 }
 
 #run function
-indx <- indx_list[9]
+indx <- indx_list[6]
 cat("processing index=", indx, "\n")
 
 #run historical period first

@@ -17,6 +17,9 @@ wd <- "~/common_data/atlas_hazards/cmip6"
 meta_dir <- paste0(wd, "/metadata")
 buck_dir <- paste0(wd, "/bucket_upload")
 
+#overwrite?
+overwrite <- TRUE
+
 #list buckets
 buck_list <- bucketlist()
 
@@ -42,6 +45,7 @@ fls <- list.files(paste0(wd, "/bucket_upload"), full.names = TRUE)
   purrr::map(.f = function(i) {
       objname <- paste0("Updates_for_MVP_Release/1_hazards/datasets/",basename(fls[i]))
       fok <- object_exists(object = objname, bucket = bk_name, quiet = TRUE)
+      if (overwrite) {fok <- FALSE}
       if (!fok) {put_ok <- put_object(file = fls[i], object = objname, bucket = bk_name, verbose = FALSE, multipart=TRUE)}
     })
 
@@ -52,6 +56,7 @@ fls <- list.files(paste0(wd, "/metadata"), full.names = TRUE)
   purrr::map(.f = function(i) {
     objname <- paste0("Updates_for_MVP_Release/1_hazards/metadata/",basename(fls[i]))
     fok <- object_exists(object = objname, bucket = bk_name, quiet = TRUE)
+    if (overwrite) {fok <- FALSE}
     if (!fok) {put_ok <- put_object(file = fls[i], object = objname, bucket = bk_name, verbose = FALSE)}
   })
 
