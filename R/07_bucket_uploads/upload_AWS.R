@@ -29,7 +29,8 @@ bucket_df <- get_bucket_df(bucket=bk_name,
                            max = 20000) %>%
              as.data.frame()
 
-#create metadata and objects
+#create metadata and datasets folders. Note that S3 buckets are flat (i.e., with no
+#folder structure). Yet Amazon allows creating pseudo-folders to ease (visual) access
 dset_ok <- put_folder(folder = "Updates_for_MVP_Release/1_hazards/datasets",
                       bucket = bk_name)
 mdat_ok <- put_folder(folder = "Updates_for_MVP_Release/1_hazards/metadata",
