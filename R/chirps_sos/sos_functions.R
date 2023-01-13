@@ -260,11 +260,6 @@ SOS_SeqMerge<-function(Seq,AI,MaxGap,MinStartLen,MaxStartSep,ClipAI,S1.AI){
       AI[CSSeq[N]]<-T
     }
     
-    # If starting separation cannot be less than the max allowable gap
-    if(MaxGap>MaxStartSep){
-      MaxStartSep<-MaxGap
-    }
-    
     # Set initial AI values where season start is false to false
     N2<-which(!is.na(Seq))
     if((N2[1]-1)>0){
@@ -559,7 +554,7 @@ slide_apply2 <- function (data, window, step = 1, fun)
   result<-result[c(which(!is.na(result)),which(is.na(result)))]
   return(result)
 }
-# This function takes two angles and calculates the difference between then as such we need to convert dekads 1:36 to degrees 1:360 (and back again)
+# This function takes two dekads and calculates the difference between them
 #' @export
 CicularDist<-function(Val1,Val2,interval){
   Max<-max(Val1,Val2)
@@ -569,6 +564,60 @@ CicularDist<-function(Val1,Val2,interval){
   
   return(m)
 }
+# This function wraps the CicularDist function to work with ordered vectors of multiple SOS & EOS
+#' @export
+SOS_dist<-function(SOS,EOS){
+  DistForward<-sapply(1:length(SOS),FUN=function(i){
+    round(CicularDist(EOS[i],SOS[c(2:length(SOS),1)][i],interval=36),0)
+  })
+  return(DistForward)
+}
+# This function creates a logical vector determining if sequences are multimodal based on their distance and a maximum distance threshold (distance<=maxgap)
+#' @export
+SOS_multimodes<-function(distance,maxgap){
+  A<-which(distance<=maxgap)
+  B<-which(distance<=maxgap)+1
+  B[B>length(distance)]<-1
+  1:length(distance) %in% sort(unique(c(A,B)))
+}
+# This function recodes sequence numbers to be sequential c(1,3,3,5) becomes c(1,2,2,3) 
+#' @export
+SOS_recode_seq<-function(sequence){
+  N<-length(unique(sequence))
+  for(i in 1:N){
+    sequence[sequence==unique(sequence)[i]]<-i
+  }
+  return(sequence)
+}
+# This function matches SOS (forward=T) or EOS (forward=F) values to recoded sequence values (used in the LT avg section of 4_explore_results) 
+#' @export
+SOS_recode_events<-function(sequence,value,forward=T){
+  seqs<-rle(sequence)
+  lengths<-seqs$lengths
+  if(forward){
+    val_location<-cumsum(seqs$length)-(lengths-1)
+  }else{
+    val_location<-cumsum(seqs$length)
+  }
+  
+  if(sequence[1]==tail(sequence,1)){
+    if(forward){
+      if(length(sequence)==2){
+        val_location<-2
+      }else{
+        val_location[1]<-tail(val_location,1)
+      }
+    }else{
+      if(length(sequence)==2){
+        val_location<-1
+      }else{
+      val_location[length(val_location)]<-val_location[1]
+      }
+    }
+  }
+  return(rep(value[val_location],lengths))
+}
+
 # Calculate mode
 #' @export
 getmode <- function(v,na.rm) {
@@ -672,7 +721,7 @@ rm_edge_seq<-function(Year,Dekad,Dekad.Seq){
 }
 # SOS analysis function
 #' @param DATA data.frame, data.table or tibble of dekadal climate data. Must contain the fields `Index`, `Dekad`, `Year`, `Rain.Season`,`Rain`
-#' `ETo`.
+#' `ETo`,`AI`.
 #' @param D1.mm amount of rainfall (mm) that needs to fall in a dekad to trigger onset of rain (dekad_n). Default = 25mm.
 #' @param D2.mm amount of rainfall (mm) that needs to fall in subsequent dekads `(dekad_n + 1):(dekad_n + D2.len)`, as defined in `D2.len`, to trigger onset of rain (SOS). Default = 20mm.
 #' @param D2.len the number of dekads after dekad 1 from which `D2.mm` is summed. Default = 2.
@@ -710,23 +759,24 @@ SOS_Fun<-function(DATA,
   DATA<-DATA[,Complete:=length(Dekad)==36,by=list(Index,Year) # Calculate dekads within a year
              ][Complete==T  # Remove incomplete years 
                ][,Complete:=NULL # Tidy up
-                 ]
+                 ][,AI:=Rain/ETo]  # Calculate aridity index (AI)
+
   
   if(!Skip2){
-    DATA<-DATA[,list(Rain.Dekad=sum(Rain),ETo=sum(ETo),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season) # Sum rainfall and take mean aridity, Index by dekad  (within year and rain season)
+    DATA<-DATA[,list(Rain=sum(Rain),ETo=sum(ETo),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season) # Sum rainfall and take mean aridity, Index by dekad  (within year and rain season)
     ][,Dekad.Season:=SOS_SeasonPad(Data=Rain.Season,PadBack=PadBack,PadForward=PadForward),by=Index] # Pad rainy seasons (for growing season > 150 days)
   }
   
   DATA[,Dekad.Seq:=SOS_UniqueSeq(Dekad.Season),by=Index # Sequences within sites need a unique ID
         ][Year==min(Year) & Dekad<=16 & Dekad.Seq==head(Dekad.Seq[!is.na(Dekad.Seq)],1),Dekad.Seq:=NA,by=Index # Remove first sequence of first year to avoid boundary issues at the edge of the dataset timeframe
          ][Year==max(Year) & Dekad>16 & Dekad.Seq==tail(Dekad.Seq[!is.na(Dekad.Seq)],1),Dekad.Seq:=NA,by=Index  # Remove last sequence of last year to avoid boundary issues at the edge of the dataset timeframe
-           ][,Rain.sum2:=slide_apply(Rain.Dekad,window=D2.len+1,step=1,fun=sum) # Rainfall for next two dekads
-              ][,SOSmet:=Rain.sum2>=D2.mm & Rain.Dekad>=D1.mm] # Is rainfall of current dekad >=25 and sum of next 2 dekads >=20?
+           ][,Rain.sum2:=slide_apply(Rain,window=D2.len+1,step=1,fun=sum) # Rainfall for next two dekads
+              ][,SOSmet:=Rain.sum2>=D2.mm & Rain>=D1.mm] # Is rainfall of current dekad >=25 and sum of next 2 dekads >=20?
     
   if(AI_Seasonal){
-    DATA[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad,Year)] # It may be sufficient to simply set AI.mean to AI
+    DATA<-DATA[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad,Year)] # Calculate mean aridity Site.Key per dekad across timeseries
   }else{
-    DATA[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad)] # Calculate mean aridity index for per dekad across all years
+    DATA<-DATA[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad)] # Calculate mean aridity Site.Key per dekad across timeseries
   }
   
   DATA[,AI.0.5:=AI.mean>=AI.t,by=AI.mean # Is aridity >=0.5?
@@ -842,7 +892,7 @@ SOS_Wrap<-function(DATA,
                       S1.AI=S1.AI)
   
   CLIM.Dekad[!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-             ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
+             ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
                ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
   
   # 2) Calculate Seasonal Values ####
@@ -886,7 +936,7 @@ SOS_Wrap<-function(DATA,
                            S1.AI=S1.AI)
       
       CLIM.Dekad2[!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
       ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
       
       
@@ -939,7 +989,7 @@ SOS_Wrap<-function(DATA,
       )
       
       CLIM.Dekad1[!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
       ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
       
       
@@ -966,7 +1016,7 @@ SOS_Wrap<-function(DATA,
     Sites<-DataNonAdjacent[,unique(Index)]
     
     if(length(Sites)>0){
-      CLIM.Dekad1<-DATA[Index %in% Sites,list(Rain.Dekad=sum(Rain),ETo=sum(ETo),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season)]
+      CLIM.Dekad1<-DATA[,AI:=Rain/ETo][Index %in% Sites,list(Rain=sum(Rain),ETo=sum(ETo),AI=mean(AI)),by=list(Index,Year,Dekad,Rain.Season)]
       
       # Merge season separation with climate data
       CLIM.Dekad1<-merge(CLIM.Dekad1,
@@ -1024,7 +1074,7 @@ SOS_Wrap<-function(DATA,
                            S1.AI=S1.AI)
       
       CLIM.Dekad1[!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
+      ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain),by=list(Index,Dekad.Seq,AI.Seq)  # Add total rainfall for season # Add total rainfall for season
       ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add total ETo for season # Add total rainfall for season
       
       
@@ -1033,8 +1083,8 @@ SOS_Wrap<-function(DATA,
         ][,Complete:=length(Dekad)==36,by=list(Index,Year) # Calculate dekads within a year
         ][Complete==T | (Dekad %in% 34:36 & Year==min(Year)) # Remove incomplete years but keep last three dekads (when wet period start is Jan we need to look 3 dekads before this) 
         ][,Complete:=NULL # Tidy up
-        ][,Rain.sum2:=slide_apply(Rain.Dekad,window=D2.len+1,step=1,fun=sum) # Rainfall for next two dekads
-        ][,SOSmet:=Rain.sum2>=D2.mm & Rain.Dekad>=D1.mm] # Is rainfall of current dekad >=25 and sum of next 2 dekads >=20?
+        ][,Rain.sum2:=slide_apply(Rain,window=D2.len+1,step=1,fun=sum) # Rainfall for next two dekads
+        ][,SOSmet:=Rain.sum2>=D2.mm & Rain>=D1.mm] # Is rainfall of current dekad >=25 and sum of next 2 dekads >=20?
         
         if(AI_Seasonal==T){
           CLIM.Dekad1<-CLIM.Dekad1[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad,Year)] # Calculate mean aridity Site.Key per dekad across timeseries
@@ -1058,7 +1108,7 @@ SOS_Wrap<-function(DATA,
         ][SOS==EOS,c("AI.Seq","SOS","EOS"):=NA # Remove observations where SOS == EOS (sequence is length 1)
         ][Year==max(Year) & EOS==36,c("LGP","EOS"):=NA # remove EOS and LGP where EOS is the last dekad of the available data
         ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-        ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq) # Add total rainfall for season
+        ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain),by=list(Index,Dekad.Seq,AI.Seq) # Add total rainfall for season
         ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add ETo rainfall for season
       }
       
@@ -1086,118 +1136,20 @@ SOS_Wrap<-function(DATA,
   # What is the similarity of SOS within the site?
   Seasonal2[,SOSsimilarity:=SameSOS(SOS),by=list(Index,Dekad.Season)]
   
-  X1<-unique(Seasonal2[SOSsimilarity>SOSSimThresh,list(Index,Dekad.Season,Seasons)]) # Redundant?
-  
-  # 4.4) Add separation #####
+  # 4.4) Add season separation values  #####
   CLIM.Dekad[!(is.na(EOS)|is.na(SOS)|is.na(Dekad.Season)),Season.Sep.Min:=SeasonSpacing(SOS,EOS,Dekad.Season)$sepmin,by=Index
   ][!(is.na(EOS)|is.na(SOS)|is.na(Dekad.Season)),Season.Sep.Max:=SeasonSpacing(SOS,EOS,Dekad.Season)$sepmax,by=Index
   ][!(is.na(EOS)|is.na(SOS)|is.na(Dekad.Season)),Season.Order:=SeasonSpacing(SOS,EOS,Dekad.Season)$order,by=Index]
   
-  # 5) Is planting possible in the off season - is this a humid region? ####
-  
-  # Consider using AIseq here rather than Dekad.Season?
-  Sites<-Seasonal2[Seasons==2,unique(Index)]
-  
-  if(length(Sites)>0){
-    CLIM.Dekad1<-data.table::copy(CLIM.Dekad)[Index %in% Sites
-    ][is.na(Dekad.Season),Dekad.Season1:=3
-    ][!is.na(Dekad.Season),Dekad.Season:=NA
-    ][,Dekad.Season:=Dekad.Season1
-    ][,Dekad.Season1:=NULL
-    ][,Dekad.Seq:=SOS_UniqueSeq(Dekad.Season),by=Index]
-    
-    # Function to shrink third season by one dekad at each end
-    ShrinkX<-function(X){
-      X<-unlist(X)
-      X[1]<-NA
-      X[length(X)]<-NA
-      return(X)
-    }
-    
-    if(F){
-      CLIM.Dekad1<-CLIM.Dekad1[,Dekad.Seq2:=Dekad.Seq
-      ][,Dekad.Seq2:=ShrinkX(Dekad.Seq2),by=list(Index,Dekad.Seq)
-      ][,Dekad.Seq:=Dekad.Seq2
-      ][,Dekad.Seq2:=NULL
-      ]
-    }
-    
-    CLIM.Dekad1<-CLIM.Dekad1[Dekad.Season==3
-    ][,Rain.sum2:=slide_apply(Rain.Dekad,window=D2.len+1,step=1,fun=sum) # Rainfall for next two dekads
-    ][,SOSmet:=Rain.sum2>=D2.mm & Rain.Dekad>=D1.mm] # Is rainfall of current dekad >=25 and sum of next 2 dekads >=20?
-    
-    if(AI_Seasonal==T){
-      CLIM.Dekad1<-CLIM.Dekad1[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad,Year)] # Calculate mean aridity Site.Key per dekad across timeseries
-    }else{
-      CLIM.Dekad1<-CLIM.Dekad1[,AI.mean:=round(mean(AI,na.rm=T),2),by=list(Index,Dekad)] # Calculate mean aridity Site.Key per dekad across timeseries
-    }
-    
-    CLIM.Dekad1<-CLIM.Dekad1[,AI.0.5:=AI.mean>=AI.t,by=AI.mean # Is aridity Index >=0.5?
-    ][!(is.na(Dekad.Season)),AI.Seq1:=SOS_RSeason(RAIN=SOSmet,AI=AI.0.5,S1.AI=S1.AI),by=list(Index,Dekad.Seq)] # Look for sequences of AI>=0.5 starting when rainfall criteria met
-    
-    if(Do.SeqMerge){
-      CLIM.Dekad1[!(is.na(Dekad.Season)),AI.Seq:=SOS_SeqMerge(Seq=AI.Seq1,AI=AI.0.5,MaxGap=MaxGap,MinStartLen=MinStartLen,MaxStartSep=MaxStartSep,ClipAI=ClipAI,S1.AI=S1.AI),by=list(Index,Dekad.Seq)]
-    }else{
-      CLIM.Dekad1[,AI.Seq:=AI.Seq1]
-    }
-    
-    CLIM.Dekad1<-CLIM.Dekad1[!is.na(AI.Seq),SOS:=Dekad[1],by=list(Index,AI.Seq,Dekad.Seq) # Start of season (SOS) is first dekad of each sequence
-    ][!is.na(AI.Seq),EOS:=Dekad[length(Dekad)],by=list(Index,AI.Seq,Dekad.Seq) # End of season (EOS) is last dekad of each sequence
-    ][SOS<EOS,LGP:=EOS-SOS # Length of growing period (LGP) is SOS less EOS
-    ][SOS>EOS,LGP:=36-SOS+EOS # Deal with scenario where SOS is in different year to EOS
-    ][SOS==EOS,c("AI.Seq","SOS","EOS"):=NA # Remove observations where SOS == EOS (sequence is length 1)
-    ][Year==max(Year) & EOS==36,c("LGP","EOS"):=NA # remove EOS and LGP where EOS is the last dekad of the available data
-    ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Start.Year:=Year[1],by=list(Index,Dekad.Seq) # Add starting year for seasons
-    ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.Rain:=sum(Rain.Dekad),by=list(Index,Dekad.Seq,AI.Seq) # Add total rainfall for season
-    ][!(is.na(AI.Seq)|is.na(Dekad.Seq)),Tot.ETo:=sum(ETo),by=list(Index,Dekad.Seq,AI.Seq)] # Add ETo rainfall for season
-    
-    Seasonal3<-unique(CLIM.Dekad1[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,SOS,EOS,LGP,Dekad.Season,Tot.Rain,Tot.ETo)])
-    # Remove second seasons that are too short
-    Seasonal3<-Seasonal3[!(Dekad.Season==3 & LGP<MinLength)]
-    Seasonal3[Dekad.Season==3,Seasons.Count:=sum(Dekad.Season==3),by=Index
-    ][,Season3Prop:=Seasons.Count/Len,by=Index]
-    
-    # Remove third seasons that are present for less than a specified proportion of the time 
-    if(!is.na(Season2.Prop)){
-      Seasonal3<-Seasonal3[!(Dekad.Season==3 & Season3Prop<=Season2.Prop)]
-    }
-    
-    if(nrow(Seasonal3)>0){
-      Sites<-Seasonal3[,unique(Index)]
-      
-      # Combine data main dataset with modified season 3 data
-      CLIM.Dekad.3<-rbind(CLIM.Dekad1[Index %in% Sites],CLIM.Dekad[!(Index %in% Sites & is.na(Dekad.Season))])
-      
-      # Update seasonal statistics
-      Seasonal3<-unique(CLIM.Dekad.3[!(is.na(Dekad.Season)|is.na(Start.Year)),list(Index,Start.Year,Dekad.Season,SOS,EOS,LGP,Tot.Rain,Tot.ETo)])
-      Seasonal3<-Seasonal3[base::order(Index,Start.Year,Dekad.Season,decreasing=c(FALSE,FALSE,FALSE),method="radix")]
-      # Remove second seasons that are too short
-      Seasonal3<-Seasonal3[!(Dekad.Season %in% c(2,3) & LGP<MinLength)]
-      Seasonal3[,Seasons.Count:=.N,by=list(Index,Dekad.Season)
-      ][,SeasonProp:=Seasons.Count/Len,by=Index]
-      
-      # Remove third seasons that are present for less than a specified proportion the time (relative to season 1)
-      if(!is.na(Season2.Prop)){
-        Seasonal3<-Seasonal3[SeasonProp>=Season2.Prop]
-      }
-      
-      Seasonal3[,Seasons:=length(unique(Dekad.Season)),by=Index]
-      
-      Seasonal3[,SOSsimilarity:=SameSOS(SOS),by=list(Index,Dekad.Season)]
-    }
-  }else{
-    Seasonal3<-Seasonal2[0]
-  }
-  
-  # 6) Site.Details ####
+  # 5) Site.Details ####
   # Proportion of dekads, entire time series, where SOS or AI rule is true
   Site.Details<-CLIM.Dekad[,list(AI.0.5.Prop=sum(AI.0.5)/.N,
                                  AI.1.0.Prop=sum(AI.mean>=1)/.N,
                                  SOSmet.Prop=sum(SOSmet,na.rm = T)/.N,
-                                 MAP=sum(Rain.Dekad)/length(unique(Year))),by=Index]
+                                 MAP=sum(Rain)/length(unique(Year))),by=Index]
   
   
-  # 7) Long term average SOS, EOS, LGP and Total Rainfall ####
+  # 6) Long term average SOS, EOS, LGP and Total Rainfall ####
   
   LTAvg_SOS2<-Seasonal2[!is.na(Dekad.Season),list(Total.Seasons=.N,
                                                   SOS.mean=round(CircMean(m=SOS,interval=36,na.rm=T),1),
@@ -1240,54 +1192,41 @@ SOS_Wrap<-function(DATA,
   # Merge LT season order and year end data with Seasonal
   Seasonal2<-merge(Seasonal2,LTAvg_SOS2[,list(Index,Dekad.Season,Season.Ordered,SOS.EOS.XYearEnd,SOS.add15.XYearEnd,SOS.min,SOS.max,Total.Seasons)],by=c("Index","Dekad.Season"),all.x=T)
   
-  
-  LTAvg_SOS3<-Seasonal3[!is.na(Dekad.Season),list(Total.Seasons=.N,
-                                                  SOS.mean=round(CircMean(m=SOS,interval=36,na.rm=T),1),
-                                                  SOS.mean.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean",stat="mean"),2),
-                                                  SOS.mean.dev.sd=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mean",stat="sd"),2),
-                                                  SOS.mode=getmode(SOS,na.rm=T),
-                                                  SOS.mode.dev=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode",stat="mean"),2),
-                                                  SOS.mode.dev.sd=round(mean_deviance(data=SOS,interval=36,na.rm=T,fun="mode",stat="sd"),2),
-                                                  SOS.min=suppressWarnings(min(SOS,na.rm=T)),
-                                                  SOS.max=suppressWarnings(max(SOS,na.rm=T)),
-                                                  EOS.mean=round(CircMean(m=EOS,interval=36,na.rm=T),1),
-                                                  EOS.mean.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean",stat="mean"),2),
-                                                  EOS.mean.dev.sd=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mean",stat="sd"),2),
-                                                  EOS.mode=getmode(EOS,na.rm=T),
-                                                  EOS.mode.dev=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode",stat="mean"),2),
-                                                  EOS.mode.dev.sd=round(mean_deviance(data=EOS,interval=36,na.rm=T,fun="mode",stat="sd"),2),
-                                                  EOS.min=suppressWarnings(min(EOS,na.rm=T)),
-                                                  EOS.max=suppressWarnings(max(EOS,na.rm=T)),
-                                                  LGP.mean=round(mean(LGP,na.rm=T),1),
-                                                  LGP.mode=getmode(LGP,na.rm=T),
-                                                  LGP.min=suppressWarnings(min(LGP,na.rm=T)),
-                                                  LGP.max=suppressWarnings(max(LGP,na.rm=T)),
-                                                  LGP.sd=round(suppressWarnings(sd(LGP,na.rm=T)),2),
-                                                  Tot.Rain.mean=round(mean(Tot.Rain,na.rm=T),1),
-                                                  Tot.Rain.sd=round(sd(Tot.Rain,na.rm=T),1),
-                                                  Tot.ETo.mean=round(mean(Tot.ETo,na.rm=T),1),
-                                                  Tot.ETo.sd=round(sd(Tot.ETo,na.rm=T),2),
-                                                  Balance.mean=round(mean(Tot.Rain-Tot.ETo,na.rm=T),1),
-                                                  Balance.sd=round(sd(Tot.Rain-Tot.ETo,na.rm=T),2),
-                                                  SOS.EOS.XYearEnd=round(sum(EOS[!is.na(EOS)]<SOS[!is.na(EOS)])/length(EOS[!is.na(EOS)]),2),
-                                                  SOS.add15.XYearEnd=round(sum((SOS[!is.na(SOS)]+15)>36,na.rm=T)/length(SOS[!is.na(SOS)]),2)),
-                        by=list(Index,Dekad.Season)]
-  
-  LTAvg_SOS3[!is.na(Dekad.Season),Seasons:=length(unique(Dekad.Season)),by=Index]
-  
-  # Order seasons by SOS
-  LTAvg_SOS3[!(is.na(SOS.mean)|is.na(Seasons)|is.na(Dekad.Season)),Season.Ordered:=(1:length(Dekad.Season))[order(SOS.mean)],by=Index
-  ][Seasons==1,Season.Ordered:=NA]
-  
-  # Merge LT season order and year end data with Seasonal
-  Seasonal3<-merge(Seasonal3,LTAvg_SOS3[,list(Index,Dekad.Season,Season.Ordered,SOS.EOS.XYearEnd,SOS.add15.XYearEnd,SOS.min,SOS.max,Total.Seasons)],by=c("Index","Dekad.Season"),all.x=T)
-  
   # 8) Combine into a list and return data ####
   ERA_SOS<-list(Dekadal_SOS=CLIM.Dekad,
                 Seasonal_SOS2=if(nrow(Seasonal2)>0){Seasonal2}else{NULL},
-                LTAvg_SOS2=if(nrow(LTAvg_SOS2)>0){LTAvg_SOS2}else{NULL},
-                Seasonal_SOS3=if(nrow(Seasonal3)>0){Seasonal3}else{NULL},
-                LTAvg_SOS3=if(nrow(LTAvg_SOS3)>0){LTAvg_SOS3}else{NULL})
+                LTAvg_SOS2=if(nrow(LTAvg_SOS2)>0){LTAvg_SOS2}else{NULL})
+  
   return(ERA_SOS)
 }
-
+# Subset seasons to two in long-term average climate derived without using rainy season windows
+# For the seasons selected from using the long-term average and no rainy seasons (rainy periods are defined without searching within a defined rainy period)
+# select the two seasons with the longest LGP. If LGP is tied for the second season the the season with the lowest SOS is used.
+#' @param Seq Unique sequence ID representing a rainy period
+#' @param LGP Length of the sequence (dekads)
+#' @param SOS Start of the sequence (dekad)
+#' @export
+SOS_subset_LT_seasons<-function(sequence,value,SOS){
+  data<-unique(data.frame(sequence,value,SOS))
+  
+  if(length(data$sequence)>2){
+    ord<-order(data$value,decreasing = T)
+    srt<-sort(data$value,decreasing = T)
+    if(srt[2]==srt[3] & srt[1]!=srt[2]){
+      ord2<-ord[ord %in% c(2,3)]
+      SOSord<-data$SOS[ord2]
+      SOSmin<-which(SOSord==min(SOSord))[1]
+      ord<-c(ord[1],ord2[SOSmin])
+    }else{
+      ord<-ord[c(1,2)]
+    }
+    vals<-rep(F,length(data$sequence))
+    vals[ord]<-T
+  }else{
+    vals<-rep(T,length(data$sequence))
+  }
+  
+  vals<-vals[match(sequence,data$sequence)]
+  
+  return(vals)
+}
