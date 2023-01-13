@@ -24,6 +24,7 @@ stp[] <- lapply(stp, as.character) %>% base::as.data.frame()
 stp$corrupted <- NA
 stp <- tibble::tibble(stp)
 
+# Looping the process
 for(i in 1:nrow(stp)){
   
   cat(paste0('>>> Processing: ',stp$gcm[i],', ',stp$ssp[i],', ',stp$prd[i],'\n'))
@@ -37,7 +38,7 @@ for(i in 1:nrow(stp)){
   ifl <- list.files(path = paste0(root,'/atlas_hazards/cmip6/indices/',ssp,'_',gcm,'_',prd,'/',idx), pattern = '.tif$', full.names = T)
   ifl <- ifl[grep(pattern = 'AVAIL', x = ifl, invert = T)]
   
-  # Detect empty index files
+  # Detect corrupted index files
   future::plan(multicore, workers = parallel::detectCores()-1)
   vrf <- 1:length(ifl) %>%
     furrr::future_map(.f = function(j){
@@ -53,14 +54,15 @@ for(i in 1:nrow(stp)){
   if(length(toCheck) > 0){
     date <- basename(toCheck) %>% gsub('NDWS-', '', ., fixed = T) %>% gsub('.tif', '', ., fixed = T)
     
-    # Setup daily files
+    # Setup daily files per variable
     vrss <- c('pr','tasmax','tasmin')
     stp_dly <- merge(x = data.frame(gcm, ssp, prd),
                      y = base::data.frame(vrss)); rm(vrss)
     names(stp_dly)[ncol(stp_dly)] <- 'var'
     stp_dly[] <- lapply(stp_dly, as.character) %>% base::as.data.frame()
     
-    res <- 1:nrow(stp_dly) %>%
+    # Corrupted files identification
+    crrptd <- 1:nrow(stp_dly) %>%
       purrr::map(.f = function(k){
         
         var <- stp_dly$var[k]
@@ -78,30 +80,28 @@ for(i in 1:nrow(stp)){
           }
         }
         
+        # Filter years with index's problems (only applies for temperature files)
         if(var %in% c('tasmax','tasmin')){
           pth <- pth[grep2(strsplit(date,'-') %>% purrr::map(1) %>% base::unlist() %>% unique(),pth) %>% base::unlist()]
         }
         
-        # Files to check
+        # Corrupted files
         fls2chck <- 1:length(pth) %>%
           purrr::map(.f = function(j){
-            
             fls <- list.files(path = pth[j], pattern = '.tif$', full.names = T) # List daily files
-            szs <- file.size(fls) * 1e-6
-            avg <- mean(szs)
-            std <- sd(szs)
-            vrf <- fls[szs < (avg - 5*std)]
+            szs <- file.size(fls) * 1e-6    # File size in MB
+            avg <- mean(szs)                # Average files size
+            std <- sd(szs)                  # Standard deviation files size
+            vrf <- fls[szs < (avg - 5*std)] # Identify files which are 5 std below average (corrupted files)
             return(vrf)
-          }) %>%
-          base::unlist() %>%
-          unique()
+          }) %>% base::unlist() %>% unique()
         
-        return(fls2chck)
+        return(fls2chck) # Return corrupted files per combination
         
       }) %>% base::unlist()
     
-    if(length(res) > 0){
-      stp$corrupted[i] <- res
+    if(length(crrptd) > 0){
+      stp$corrupted[i] <- crrptd
     } else {
       stp$corrupted[i] <- NA
     }
@@ -112,4 +112,4 @@ for(i in 1:nrow(stp)){
   
 }
 
-saveRDS(object = stp, file = paste0())
+# saveRDS(object = stp, file = paste0())
