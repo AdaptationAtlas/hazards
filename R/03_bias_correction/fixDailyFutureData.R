@@ -28,7 +28,7 @@ fix_day <- function(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp 
     fl2fix <- paste0(root,'/chirps_cmip6_africa/',prfx,'_',gcm,'_',ssp,'_',prd,'/chirps-v2.0.',gsub('-','.',as.character(date)),'.tif')
   } else {
     if(var %in% c('tasmax','tasmin')){
-      fl2fix <- paste0(root,'chirts_cmip6_africa/',prfx,'_',gcm,'_',ssp,'_',prd,'/',yr,'/',prfx,'.',gsub('-','.',as.character(date)),'.tif')
+      fl2fix <- paste0(root,'/chirts_cmip6_africa/',prfx,'_',gcm,'_',ssp,'_',prd,'/',yr,'/',prfx,'.',gsub('-','.',as.character(date)),'.tif')
     }
   }
   
@@ -73,7 +73,8 @@ fix_day <- function(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp 
     r <- r * (1 + delta)
     terra::writeRaster(r, fl2fix, overwrite = T)
     
-    return(cat(paste0(basename(fl2fix),' fixed\n')))
+    cat(paste0(basename(fl2fix),' fixed\n'))
+    return(r)
     
   }
   if(var %in% c('tasmax','tasmin')){
@@ -94,9 +95,49 @@ fix_day <- function(date = '2041-10-19', var = 'pr', gcm = 'ACCESS-ESM1-5', ssp 
     r <- r + delta
     terra::writeRaster(r, fl2fix, overwrite = T)
     
-    return(cat(paste0(basename(fl2fix),' fixed\n')))
+    cat(paste0(basename(fl2fix),' fixed\n'))
+    return(r)
   }
   
 }
 
-fix_day(date = '2035-01-30', var = 'pr', gcm = 'EC-Earth3', ssp = 'ssp585', prd = '2021_2040')
+# --------------------------------------------------------
+#if you need to fix only one day then change the parameters and run the function below
+#fix_day(date = '2035-01-30', var = 'pr', gcm = 'EC-Earth3', ssp = 'ssp585', prd = '2021_2040')
+
+# --------------------------------------------------------
+#fix corrupted files
+#load corrupted file list (stored as corrupted_files.RDS)
+
+bad_fls <- readRDS(paste0(root, "/atlas_hazards/cmip6/corrupted_files.RDS"))
+for (i in 1:nrow(bad_fls)) {
+  #i <- 1
+  tgcm <- bad_fls$gcm[i]
+  tssp <- bad_fls$ssp[i]
+  tprd <- bad_fls$prd[i]
+  bfls <- bad_fls$corrupted[i]
+  if (!is.na(bfls[[1]][1])) {
+    for (k in 1:length(bfls[[1]])) {
+      #k <- 1
+      tfile <- bfls[[1]][k]
+      cat("\n badfile", tfile, "\n")
+      bname <- basename(tfile) %>% 
+        gsub("chirps-v2.0.", "", .) %>%
+        gsub("Tmax.", "", .) %>%
+        gsub("Tmin.", "", .) %>%
+        gsub("\\.tif", "", .) %>%
+        strsplit(., split=".", fixed=TRUE) %>%
+        unlist(.)
+      if (length(grep("chirps-v2.0.", basename(tfile))) != 0) {vname <- "pr"}
+      if (length(grep("Tmax.", basename(tfile))) != 0) {vname <- "tasmax"}
+      if (length(grep("Tmin.", basename(tfile))) != 0) {vname <- "tasmin"}
+      tdate <- paste0(bname[1],"-",bname[2],"-",bname[3])
+      cat("correcting date=", tdate, "/ var=", vname, "/ gcm=", tgcm, "/ ssp=", tssp, "/ period=", tprd, "\n")
+      
+      #now fix the data
+      rfix <- fix_day(date = tdate, var = vname, gcm = tgcm, ssp = tssp, prd = tprd)
+    }
+  }
+}
+
+
