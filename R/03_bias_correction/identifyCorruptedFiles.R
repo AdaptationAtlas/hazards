@@ -101,7 +101,7 @@ for(i in 1:nrow(stp)){
       }) %>% base::unlist()
     
     if(length(crrptd) > 0){
-      stp$corrupted[i] <- crrptd
+      stp$corrupted[i] <- list(crrptd)
     } else {
       stp$corrupted[i] <- NA
     }
@@ -112,4 +112,4 @@ for(i in 1:nrow(stp)){
   
 }
 
-# saveRDS(object = stp, file = paste0())
+base::saveRDS(object = stp, file = paste0(root,'/atlas_hazards/cmip6/corrupted_files.RDS'))
