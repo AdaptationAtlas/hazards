@@ -6,6 +6,22 @@ require(terra)
 require(circular)
 require(sp)
 
+# TO DO for seasonal analysis
+# Create a function that can stitch together seasons if there is no break between them - trying to deal with DRC LGP being limited by duration specified
+# Alternatively adopt method as per long-term average (but that only considers 1 year not a sequence)
+# This might be an adaptation of the rollback function for end of the season instead.
+# Add mode to LTAvg data
+
+# EFFICIENCY/BETTER CODING IMPROVEMENTS TO CONSIDER:
+# Create base dataset of sequences that merge, subset, etc. functions are applied to. This can replace at least the first step in the wrapper.
+# This would mean moving the seqmerge logic and subsequent EOS/SOS calculation out of the SOS_Fun
+# Create a LTavg function
+# Create a wet months function
+# Create a chunk function
+# Create function for calculation of EOS/SOS
+# Combine seqmerge and classification functions into a wrapper function?
+# Create a data import function
+
 options(scipen=999)
 
 #Cores<-parallel::detectCores()
@@ -57,14 +73,15 @@ D2.mm<-20 # Amount of rainfall needed in dekad n+1 + dekad n+2 for SOS to be TRU
 D2.len<-2 # Number of dekads following dekad n for which rain is summed and assessed against the threshold presented in D2.mm 
 AI.t<-0.5 # Aridity index threshold that dekadal rainfall must fall below to indicate EOS
 Do.SeqMerge<-T # Merge sequences that are close together and remove false starts
-MaxGap<-1 # An integer value describing the maximum gap (number of NA values) allowed between non-NA values before the sequence breaks.
+MaxGap<-2 # An integer value describing the maximum gap (number of NA values) allowed between non-NA values before the sequence breaks.
 MinStartLen<-1 # An integer value describing the minimum length of first sequence block, if the first sequence is too short and too separated from the next sequence it is removed. This is to remove false starts.
 MaxStartSep<-1 # an integer value describing the maximum separation of the first sequence block, if the first sequence is too short and too separated from the next sequence it is removed. This is to remove false starts.
 ClipAI<-F # logical `T/F`, if `T` then `AI` values corresponding to the last non-NA value in `Seq` are all set to `F` and the sequence is halted by the last `F` value of AI.
 Season2.Prop<-0.25 # Proportions of seasons the second or third seasons need to be present so that they are included in outputs.
 MinLength<-1 # Minimum length of second or third growing season in dekads
-AI_Seasonal<-F # Calculate aridity index of each dekad on an annual basis (T) or using the long-term average across all years (F)
+AI_Seasonal<-T # Calculate aridity index of each dekad on an annual basis (T) or using the long-term average across all years (F)
 RollBack<-T
+SOSSimThresh<-0.90 # When rolling back what is the similarity threshold for SOS in the site time series that needs to be exceeded? e.g. 0.95 = 95% of site need to have the same SOS for the rollback logic to be applied.
 
 S1.AI<-T # Set AI to T when for the first value of sequences of RAIN == T
 
@@ -101,6 +118,7 @@ FolderName<-paste(c(
   "-S2l",MinLength,
   "-AIs",substr(AI_Seasonal,1,1),
   "-RB",substr(RollBack,1,1),
+  "-ST",SOSSimThresh*100,
   "-S1AI",S1.AI
 ),collapse = "")
 
@@ -110,7 +128,7 @@ if(!dir.exists(SaveDir)){
   dir.create(SaveDir,recursive=T)
 }
 
-Overwrite<-T # Overwrite previous saved analysis?
+Overwrite<-F # Overwrite previous saved analysis?
 
 # Loop SOS analysis over chunks ####
 for(COUNTRY in Countries){
@@ -152,7 +170,6 @@ for(COUNTRY in Countries){
          ][,Year:=as.integer(unlist(data.table::tstrsplit(variable,"[.]",keep=1))),by=variable
            ][,Month:=as.integer(dkd2mth(Dekad)),by=Dekad
              ][,variable:=NULL
-               ][,AI:=round(Rain/ETo,2)   # Calculate aridity index (AI)
                  ][,Rain:=round(Rain,2)
                    ][,ETo:=round(ETo,2)]
   
@@ -180,8 +197,9 @@ for(COUNTRY in Countries){
   rm(HOBBINS,CHIRPSrast,HOBBINSrast,Incomplete)
   gc()
   
-
-  format(object.size(CLIM),units="Gb")
+  print(paste("Clim data size:",COUNTRY,"-",format(object.size(CLIM),units="Gb")))
+  
+  
   
   # 2) Calculate seasonality using long-term average data only #####
   print(paste("Calculating LT Avg:",COUNTRY,"-", match(COUNTRY,Countries),"/",length(Countries)))
@@ -199,7 +217,7 @@ for(COUNTRY in Countries){
                                             ][,Seq2:=SOS_RSeasonLT(RAIN=SOSmet,AI=AImet,S1.AI=S1.AI),by=list(Index)]
   
   
-  # Merge sequences over year end boundary? (should always TRUE, I think option was to quality control LTSeqMerge function)
+  # Merge sequences over year end boundary? (should always be TRUE, I think this option is to check LTSeqMerge function)
   if(Do.SeqMerge.LT){
     CLIM.LT[,Seq:=LTSeqMerge(Seq2),by=Index]
   }else{
@@ -209,7 +227,7 @@ for(COUNTRY in Countries){
   if(CLIM.LT[,!all(is.na(Seq))]){
   CLIM.LT[!is.na(Seq),SOS:=OrderDekadSeq(Dekad)[1],by=list(Index,Seq)
           ][!is.na(Seq),EOS:= tail(OrderDekadSeq(Dekad), n=1),by=list(Index,Seq)
-            ][!is.na(Seq),LGP:=.N,by=list(Index,Seq)
+            ][!is.na(Seq),LGP:=.N-1,by=list(Index,Seq)
               ][!is.na(Seq),Tot.Rain:=sum(Rain),by=list(Index,Seq)
                 ][!is.na(Seq),Tot.ETo:=sum(ETo),by=list(Index,Seq)
                   ][,AImet_sum:=sum(AImet),by=Index]
@@ -286,6 +304,7 @@ for(COUNTRY in Countries){
                                 MinLength=MinLength,
                                 AI_Seasonal=AI_Seasonal,
                                 RollBack=RollBack,
+                                SOSSimThresh=SOSSimThresh,
                                 S1.AI=S1.AI,
                                 future.packages="terra")
     
@@ -321,8 +340,6 @@ for(COUNTRY in Countries){
       Dekadal_SOS=rbindlist(lapply(SOS_Data,"[[","Dekadal_SOS")),
       Seasonal_SOS2=rbindlist(lapply(SOS_Data,"[[","Seasonal_SOS2")),
       LTAvg_SOS2=rbindlist(lapply(SOS_Data,"[[","LTAvg_SOS2")),
-      Seasonal_SOS3=rbindlist(lapply(SOS_Data,"[[","Seasonal_SOS3")),
-      LTAvg_SOS3=rbindlist(lapply(SOS_Data,"[[","LTAvg_SOS3")),
       LTAVg_Data=CLIM.LT,
       LTAVg_Summary=CLIM.LT.Summary
       )
