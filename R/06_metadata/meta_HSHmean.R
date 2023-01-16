@@ -2,16 +2,57 @@
 #also creates a single uploadable dataset for the S3/Google buckets.
 #JRV, Jan 2023
 
-#clean-up
+# Clean-up
 rm(list = ls()) # Remove objects
-g <- gc(reset = T); rm(g) # Empty garbage collector
-
-#source metadata function
-source("https://raw.githubusercontent.com/AdaptationAtlas/metadata/main/R/metadata.R")
+gc(reset = T) # Empty garbage collector
 
 #libraries
 library(terra)
 library(tidyverse)
+
+# General config
+skip_preparation <- FALSE
+
+# ------------------------------------------------------------
+# Run calc_LongTermStats: run this section of the code if the
+# long-term statistics (long-term mean, etc) need to be rerun
+if (!skip_preparation) {
+  source("~/Repositories/hazards/R/05_final_maps/calc_LongTermStats.R")
+  stp <- expand.grid(sce=sce_list, prd = period_list) %>% 
+    as.data.frame() %>%
+    dplyr::mutate(sce_prd = paste0(sce, "-", prd)) %>%
+    dplyr::filter(!sce_prd %in% c("historical-near", "historical-mid", "ssp245-hist", "ssp585-hist")) %>%
+    dplyr::select(-sce_prd)
+  1:nrow(stp) %>%
+    purrr::map(.f=function(i) {
+      continuous_map(index="HSH", HS.stat="mean", period=stp$prd[i], scenario=stp$sce[i], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+    })
+}
+
+# ------------------------------------------------------------
+# Run calc_discreteMaps: run this section of the code if the
+# discrete maps (categorical maps) need to be rerun.
+if (!skip_preparation) {
+  rm(list = ls()) # Remove objects
+  gc(reset = T) # Empty garbage collector
+  source("~/Repositories/hazards/R/05_final_maps/calc_discreteMaps.R")
+  stp <- expand.grid(sce=sce_list[2:3], prd = period_list[2:3], gcm = gcm_list, stat=stat_list) %>%
+    as.data.frame() %>%
+    rbind(data.frame(sce="historical", prd="hist", gcm=NA, stat=stat_list), .)
+  1:nrow(stp) %>%
+    purrr::map(.f=function(i) {
+      category_map(index="HSH", HS.stat="mean", period=stp$prd[i], scenario=stp$sce[i], gcm=stp$gcm[i], stat=stp$stat[i])
+    })
+}
+
+# ------------------------------------------------------------
+# Compile meta-data
+# Clean-up
+rm(list = ls()) # Remove objects
+gc(reset = T) # Empty garbage collector
+
+# Source metadata and other functions
+source("https://raw.githubusercontent.com/AdaptationAtlas/metadata/main/R/metadata.R")
 
 #working directory
 wd <- "~/common_data/atlas_hazards/cmip6"

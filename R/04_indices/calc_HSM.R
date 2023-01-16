@@ -156,3 +156,42 @@ for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-E
         }
     }
 }
+
+
+# ----------------------------------------------------------------------
+# Data fixes
+# Get reruns file.
+source("~/Repositories/hazards/R/03_bias_correction/getReruns.R")
+other_bfiles <- c(paste0(wd, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2043.03.18.tif"), 
+                  paste0(wd, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2054.10.10.tif"),
+                  paste0(wd, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2056.03.29.tif"))
+reruns_df <- getReruns(newfiles=other_bfiles) %>%
+  dplyr::filter(varname == "Tmax") %>%
+  unique(.)
+
+# Do the reruns
+for (j in 1:nrow(reruns_df)) {
+  gcm <- reruns_df$gcm[j]
+  ssp <- reruns_df$ssp[j]
+  prd <- reruns_df$prd[j]
+  cmb <- paste0(ssp,'_',gcm,'_',prd)
+  prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+  mns <- c(paste0('0',1:9),10:12)
+  yrs <- prd_num[1]:prd_num[2]
+  stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+  names(stp) <- c('yrs','mns')
+  
+  #folders
+  tx_dir <- paste0(wd, "/chirts_cmip6_africa/Tmax_", gcm, "_", ssp, "_", prd)
+  out_dir <- paste0(wd, "/atlas_hazards/cmip6/indices/", ssp, "_", gcm, "_", prd)
+  
+  #remove and redo file
+  this_file <- paste0(out_dir, "/HSM_NTx35/GSeason_HSM_NTx35-", reruns_df$yr[j], "-", reruns_df$mn[j], ".tif")
+  cat("redoing file", this_file, "\n")
+  system(paste0("rm -f ", this_file))
+  calc_hsm(yr = reruns_df$yr[j], 
+           mn = reruns_df$mn[j],
+           thr = 35,
+           allyear = FALSE)
+}
+

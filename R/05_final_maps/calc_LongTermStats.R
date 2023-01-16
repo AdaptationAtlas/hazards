@@ -1,10 +1,6 @@
 #Calculate mean, median, max, as relevant for the different layers
 #HA/JRV, Dec 2022
 
-# R options
-rm(list = ls()) # Remove objects
-g <- gc(reset = T); rm(g) # Empty garbage collector
-
 #load packages
 library(terra)
 library(tidyverse)
@@ -62,7 +58,8 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
   #ssp585_<GCM>_2021_2040
   #ssp585_<GCM>_2041_2060
   if (scenario == "historical") {
-    dir_names <- scenario
+    dir_names <- paste0(scenario)
+    doensemble <- FALSE #ensure doensemble=FALSE for historical scenario
   } else {
     dir_names <- paste0(scenario, "_", gsub("CMIP6_", "", gcm_list), "_", min(years), "_", max(years))
   }
@@ -311,26 +308,26 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
   return("Done\n")
 }
 
-#run function
-indx <- indx_list[6]
-cat("processing index=", indx, "\n")
-
-#run historical period first
-if (indx %in% c("HSH", "THI")) {
-  continuous_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
-  continuous_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
-} else {
-  continuous_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
-}
-
-#now run future
-for (sce in sce_list[2:3]) {
-  for (prd in period_list[2:3]) {
-    if (indx %in% c("HSH", "THI")) {
-      continuous_map(index=indx, HS.stat="max", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
-      continuous_map(index=indx, HS.stat="mean", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
-    } else {
-      continuous_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
-    }
-  }
-}
+# #run function
+# indx <- indx_list[6]
+# cat("processing index=", indx, "\n")
+# 
+# #run historical period first
+# if (indx %in% c("HSH", "THI")) {
+#   continuous_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+#   continuous_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+# } else {
+#   continuous_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=FALSE, omitcalendar=FALSE)
+# }
+# 
+# #now run future
+# for (sce in sce_list[2:3]) {
+#   for (prd in period_list[2:3]) {
+#     if (indx %in% c("HSH", "THI")) {
+#       continuous_map(index=indx, HS.stat="max", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+#       continuous_map(index=indx, HS.stat="mean", period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+#     } else {
+#       continuous_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, domean=TRUE, domedian=TRUE, domax=TRUE, doensemble=TRUE, omitcalendar=FALSE)
+#     }
+#   }
+# }

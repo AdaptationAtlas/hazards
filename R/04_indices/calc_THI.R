@@ -108,3 +108,53 @@ for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-E
         }
     }
 }
+
+
+# ----------------------------------------------------------------------
+# Data fixes
+# Get reruns file.
+source("~/Repositories/hazards/R/03_bias_correction/getReruns.R")
+other_bfiles <- c(paste0(root, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2043.03.18.tif"), 
+                  paste0(root, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2054.10.10.tif"),
+                  paste0(root, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2056.03.29.tif"))
+reruns_df <- getReruns(newfiles=other_bfiles) %>%
+  dplyr::filter(varname == "Tmax") %>%
+  unique(.)
+
+# Do the reruns
+for (j in 1:nrow(reruns_df)) {
+  gcm <- reruns_df$gcm[j]
+  ssp <- reruns_df$ssp[j]
+  prd <- reruns_df$prd[j]
+  
+  cmb <- paste0(ssp,'_',gcm,'_',prd)
+  prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+  yrs <- prd_num[1]:prd_num[2]
+  mns <- c(paste0('0',1:9),10:12)
+  stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+  names(stp) <- c('yrs','mns')
+  stp <- stp %>%
+    dplyr::arrange(yrs, mns) %>%
+    base::as.data.frame()
+  
+  #folders
+  tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+  rh_pth <- paste0(root,'/chirts/RHum')                                   # Relative humidity
+  out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/THI')
+  
+  yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
+                        Future = as.character(c(2021:2040,2041:2060)))
+  
+  #remove files
+  this_file <- paste0(out_dir, "/THI_max-", reruns_df$yr[j], "-", reruns_df$mn[j], ".tif")
+  system(paste0("rm -f ", this_file))
+  this_file <- paste0(out_dir, "/THI_mean-", reruns_df$yr[j], "-", reruns_df$mn[j], ".tif")
+  system(paste0("rm -f ", this_file))
+  this_file <- paste0(out_dir, "/daily/THI_daily-", reruns_df$yr[j], "-", reruns_df$mn[j], ".tif")
+  system(paste0("rm -f ", this_file))
+  
+  #redo file
+  cat("redoing file", this_file, "\n")
+  calc_thi(yr = reruns_df$yr[j], mn = reruns_df$mn[j])
+}
+

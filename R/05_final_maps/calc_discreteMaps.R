@@ -1,10 +1,6 @@
 #Calculate discrete maps
 #HA/JRV, Dec 2022
 
-# R options
-rm(list = ls()) # Remove objects
-g <- gc(reset = T); rm(g) # Empty garbage collector
-
 #load packages
 library(terra)
 library(tidyverse)
@@ -59,7 +55,7 @@ category_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="his
   #ssp585_<GCM>_2021_2040
   #ssp585_<GCM>_2041_2060
   if (scenario == "historical") {
-    dir_names <- scenario
+    dir_names <- paste(scenario)
   } else {
     dir_names <- paste0(scenario, "_", gsub("CMIP6_", "", gcm_list[grep(gcm, gcm_list)]), "_", min(years), "_", max(years))
   }
@@ -106,41 +102,41 @@ category_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="his
   return("Done\n")
 }
 
-#selected index
-indx <- indx_list[6]
-cat("processing index=", indx, "\n")
-
-#historical
-for (stt in stat_list) {
-  if (indx %in% c("HSH", "THI")) {
-    category_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
-    category_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
-  } else {
-    if (indx == "TAI") {
-      if (stt != "max_year") {category_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)}
-    } else {
-      category_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
-    }
-  }
-}
-
-#future
-for (i in 1:length(gcm_list)) {
-  cat(gcm_list[i], "\n")
-  for (prd in period_list[2:3]) {
-    for (sce in sce_list[2:3]) {
-      for (stt in stat_list) {
-        if (indx %in% c("HSH", "THI")) {
-          category_map(index=indx, HS.stat="max", period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
-          category_map(index=indx, HS.stat="mean", period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
-        } else {
-          if (indx == "TAI") {
-            if (stt != "max_year") {category_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)}
-          } else {
-            category_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
-          }
-        }
-      }
-    }
-  }
-}
+# #selected index
+# indx <- indx_list[6]
+# cat("processing index=", indx, "\n")
+# 
+# #historical
+# for (stt in stat_list) {
+#   if (indx %in% c("HSH", "THI")) {
+#     category_map(index=indx, HS.stat="max", period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
+#     category_map(index=indx, HS.stat="mean", period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
+#   } else {
+#     if (indx == "TAI") {
+#       if (stt != "max_year") {category_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)}
+#     } else {
+#       category_map(index=indx, HS.stat=NULL, period=period_list[1], scenario=sce_list[1], gcm="CMIP6_ENSEMBLE", stat=stt)
+#     }
+#   }
+# }
+# 
+# #future
+# for (i in 1:length(gcm_list)) {
+#   cat(gcm_list[i], "\n")
+#   for (prd in period_list[2:3]) {
+#     for (sce in sce_list[2:3]) {
+#       for (stt in stat_list) {
+#         if (indx %in% c("HSH", "THI")) {
+#           category_map(index=indx, HS.stat="max", period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
+#           category_map(index=indx, HS.stat="mean", period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
+#         } else {
+#           if (indx == "TAI") {
+#             if (stt != "max_year") {category_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)}
+#           } else {
+#             category_map(index=indx, HS.stat=NULL, period=prd, scenario=sce, gcm=gcm_list[i], stat=stt)
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
