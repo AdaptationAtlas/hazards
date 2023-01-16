@@ -121,10 +121,10 @@ calc_tai <- function(yr){
 #     purrr::map(.f = function(i){calc_tai(yr = stp$yrs[i])})
 
 # Future setup
-gcm <- 'EC-Earth3' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
-#for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
-    #for (ssp in c('ssp245', 'ssp585')) {
-        #for (prd in c('2021_2040', '2041_2060')) {
+#gcm <- 'EC-Earth3' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
+    for (ssp in c('ssp245', 'ssp585')) {
+        for (prd in c('2021_2040', '2041_2060')) {
             ssp <- 'ssp585'
             prd <- '2021_2040'
             cmb <- paste0(ssp,'_',gcm,'_',prd)
@@ -136,6 +136,42 @@ gcm <- 'EC-Earth3' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI
             out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/TAI')
             1:nrow(stp) %>%
               purrr::map(.f = function(i){calc_tai(yr = stp$yrs[i])})
-#        }
-#    }
-#}
+        }
+    }
+}
+
+
+# ----------------------------------------------------------------------
+# Data fixes
+# Get reruns file.
+source("~/Repositories/hazards/R/03_bias_correction/getReruns.R")
+other_bfiles <- c(paste0(root, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2043.03.18.tif"), 
+                  paste0(root, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2054.10.10.tif"),
+                  paste0(root, "/chirps_cmip6_africa/Prec_ACCESS-ESM1-5_ssp245_2041_2060/chirps-v2.0.2056.03.29.tif"))
+reruns_df <- getReruns(newfiles=other_bfiles) %>%
+  dplyr::select(-varname, -mn) %>%
+  unique(.)
+
+# Do the reruns
+for (j in 1:nrow(reruns_df)) {
+  gcm <- reruns_df$gcm[j]
+  ssp <- reruns_df$ssp[j]
+  prd <- reruns_df$prd[j]
+  cmb <- paste0(ssp,'_',gcm,'_',prd)
+  prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+  stp <- data.frame(yrs = prd_num[1]:prd_num[2])
+  
+  #folders
+  pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+  tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+  tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+  out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/TAI')
+  
+  #remove and redo file
+  this_file <- paste0(out_dir, "/TAI-", reruns_df$yr[j], ".tif")
+  cat("redoing file", this_file, "\n")
+  system(paste0("rm -f ", this_file))
+  system(paste0("Rscript --vanilla ~/Repositories/hazards/R/04_indices/calc_TAI_sh.R ", gcm, " ", ssp, " ", prd, " 1 ", which(stp$yr %in% as.numeric(reruns_df$yr[j]))))
+  #calc_tai(yr = reruns_df$yr[j])
+}
+
