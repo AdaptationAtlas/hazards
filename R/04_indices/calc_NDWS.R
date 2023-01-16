@@ -170,7 +170,13 @@ for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-E
                                   Future = as.character(c(2021:2040,2041:2060)))
 
             1:nrow(stp) %>%
-              purrr::map(.f = function(i){calc_ndws(yr = stp$yrs[i], mn = stp$mns[i])})
+              purrr::map(.f = function(i){
+                calc_ndws(yr = stp$yrs[i], mn = stp$mns[i])
+                if (i%%5 == 0) {
+                  tmpfls <- list.files(tempdir(), full.names=TRUE)
+                  1:length(tmpfls) %>% purrr::map(.f = function(k) {system(paste0("rm -f ", tmpfls[k]))})
+                }
+              })
         }
     }
 }
