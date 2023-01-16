@@ -36,6 +36,7 @@ if (!skip_preparation) {
   rm(list = ls()) # Remove objects
   gc(reset = T) # Empty garbage collector
   source("~/Repositories/hazards/R/05_final_maps/calc_discreteMaps.R")
+  stat_list <- stat_list[-which(stat_list == "max_year")]
   stp <- expand.grid(sce=sce_list[2:3], prd = period_list[2:3], gcm = gcm_list, stat=stat_list) %>%
     as.data.frame() %>%
     rbind(data.frame(sce="historical", prd="hist", gcm=NA, stat=stat_list), .)
