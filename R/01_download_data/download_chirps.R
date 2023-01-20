@@ -10,7 +10,7 @@ suppressMessages(pacman::p_load(tidyverse,terra,lubridate,R.utils))
 
 # Time frame
 ini <- as.Date('1981-01-01')
-end <- as.Date('2021-12-31')
+end <- as.Date('2022-12-31')
 dts <- seq(from = ini, to = end, by = 'day'); rm(ini, end)
 
 # Output directory

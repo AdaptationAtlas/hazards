@@ -40,7 +40,7 @@ make_class_tb <- function() {
   full_tb <- full_tb %>%
     dplyr::bind_rows(cat_df)
   
-  #NDWL50: number of waterlogging days per month
+  #NDWL50: number of waterlogging days per month at 50% saturation
   cat_df <- c(-Inf,   2,  1,
               2,   5,  2,
               5,   8,  3,
@@ -49,6 +49,19 @@ make_class_tb <- function() {
   names(cat_df) <- c("lower_lim", "upper_lim", "class")
   cat_df <- cat_df %>%
     dplyr::mutate(index_name="NDWL50", version="mvp") %>%
+    dplyr::select(index_name, version, lower_lim:class)
+  full_tb <- full_tb %>%
+    dplyr::bind_rows(cat_df)
+  
+  #NDWL0: number of waterlogging days per month at 0% saturation
+  cat_df <- c(-Inf,   2,  1,
+              2,   5,  2,
+              5,   8,  3,
+              8, Inf,  4)
+  cat_df <- as.data.frame(matrix(cat_df, ncol = 3, byrow = T))
+  names(cat_df) <- c("lower_lim", "upper_lim", "class")
+  cat_df <- cat_df %>%
+    dplyr::mutate(index_name="NDWL0", version="mvp") %>%
     dplyr::select(index_name, version, lower_lim:class)
   full_tb <- full_tb %>%
     dplyr::bind_rows(cat_df)

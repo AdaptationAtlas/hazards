@@ -9,7 +9,7 @@ pyr <- as.numeric(args[4])
 #verbose what is being processed
 cat("gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "/ year=", pyr, "\n")
 
-## Number of waterlogging days (NDWL50)
+## Number of waterlogging days (NDWL0)
 ## By: H. Achicanoy, modified by JRV to work under a bash script
 ## December, 2022
 
@@ -29,9 +29,9 @@ scp <- scp %>% terra::resample(ref) %>% terra::mask(ref)
 sst <- terra::rast(paste0(root,'/atlas_hazards/soils/africa_ssat.tif'))
 sst <- sst %>% terra::resample(ref) %>% terra::mask(ref)
 
-# Calculate NDWS function
-calc_ndwl50 <- function(yr, mn){
-  outfile <- paste0(out_dir,'/NDWL50-',yr,'-',mn,'.tif')
+# Calculate NDWL function
+calc_ndwl0 <- function(yr, mn){
+  outfile <- paste0(out_dir,'/NDWL0-',yr,'-',mn,'.tif')
   cat(outfile, "\n")
   if(!file.exists(outfile)){
     dir.create(dirname(outfile),F,T)
@@ -125,13 +125,15 @@ calc_ndwl50 <- function(yr, mn){
         return(water_balance)
       })
     LOGGING <- watbal %>% purrr::map('Logging') %>% terra::rast()
-    # Calculate number of soil water stress days
-    NDWL50  <- sum(LOGGING > (sst*0.5))
-    terra::writeRaster(NDWL50, outfile)
+    # Calculate number of soil waterlogging days (if logging is above 0)
+    # Note NDWL50 uses ssat * 0.5 (so this means soil is at 50% toward saturation)
+    # here it suffices if the soil is above field capacity
+    NDWL0  <- sum(LOGGING > 0)
+    terra::writeRaster(NDWL0, outfile)
     terra::writeRaster(AVAIL[[terra::nlyr(AVAIL)]], paste0(dirname(outfile),'/AVAIL.tif'), overwrite = T)
     
     #clean up
-    rm(list=c("prc", "ETMAX", "AVAIL", "watbal", "ERATIO", "LOGGING", "NDWL50"))
+    rm(list=c("prc", "ETMAX", "AVAIL", "watbal", "ERATIO", "LOGGING", "NDWL0"))
     gc(verbose=F, full=T, reset=T)
   }
 }
@@ -154,7 +156,7 @@ pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precip
 tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
 tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
 sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
-out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWL50')
+out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWL0')
 
 yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
                       Future = as.character(c(2021:2040,2041:2060)))
@@ -165,4 +167,4 @@ whichrow <- nrow(stp[which(stp$yrs %in% c(prd_num[1]:whichyear)),])
 
 #run the function for that year (assumes the years before are already processed)
 1:whichrow %>%
-  purrr::map(.f = function(i){calc_ndwl50(yr = stp$yrs[i], mn = stp$mns[i])})
+  purrr::map(.f = function(i){calc_ndwl0(yr = stp$yrs[i], mn = stp$mns[i])})

@@ -22,7 +22,7 @@ sce_list <- c("historical" , "ssp245", "ssp585")
 period_list <- c("hist", "near", "mid")
 
 #indices
-indx_list <- c("NDD", "NTx40", "NTx35", "HSM_NTx35", "HSH", "NDWS", "NDWL50", "THI", "TAI")
+indx_list <- c("NDD", "NTx40", "NTx35", "HSM_NTx35", "HSH", "NDWS", "NDWL50", "NDWL0", "THI", "TAI")
 
 #load all masks
 r_ref <- terra::rast(paste0(wd, "/roi/africa.tif")) # Africa base mask
@@ -87,7 +87,7 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
     #list files
     fls <- list.files(path = in_dir, pattern = "\\.tif", full.names = TRUE)
     fls <- fls[grep(pattern = '.tif$', x = fls)]
-    if (index %in% c("NDWS", "NDWL50")) {fls <- fls[-grep(pattern="AVAIL.tif", x=fls)]}
+    if (index %in% c("NDWS", "NDWL50", "NDWL0")) {fls <- fls[-grep(pattern="AVAIL.tif", x=fls)]}
     
     #names and indices for tapp
     #get YEAR-MONTH name structure

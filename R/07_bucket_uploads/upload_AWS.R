@@ -18,7 +18,7 @@ meta_dir <- paste0(wd, "/metadata")
 buck_dir <- paste0(wd, "/bucket_upload")
 
 #overwrite?
-overwrite <- TRUE
+overwrite <- FALSE
 
 #list buckets
 buck_list <- bucketlist()

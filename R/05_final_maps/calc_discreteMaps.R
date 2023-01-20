@@ -23,7 +23,7 @@ sce_list <- c("historical" , "ssp245", "ssp585")
 period_list <- c("hist", "near", "mid")
 
 #indices
-indx_list <- c("NDD", "NTx40", "NTx35", "HSM_NTx35", "HSH", "NDWS", "NDWL50", "THI", "TAI")
+indx_list <- c("NDD", "NTx40", "NTx35", "HSM_NTx35", "HSH", "NDWS", "NDWL50", "NDWL0", "THI", "TAI")
 
 #stat
 stat_list <- c("mean_year", "max_year", "median_year")

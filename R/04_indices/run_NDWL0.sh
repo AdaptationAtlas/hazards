@@ -2,7 +2,7 @@
 
 #ACCESS-ESM1-5 MPI-ESM1-2-HR EC-Earth3 INM-CM5-0 MRI-ESM2-0
 
-for GCM in INM-CM5-0
+for GCM in MRI-ESM2-0
 do
     for SCENARIO in ssp245 ssp585
     do
@@ -14,7 +14,7 @@ do
                 echo ---- processing ${GCM} - ${SCENARIO} - ${PERIOD} - ${YEAR} -----------
                 echo ----------------------------------------------------------------------
                 
-                Rscript --vanilla ~/Repositories/hazards/R/04_indices/calc_NDWL50_sh.R ${GCM} ${SCENARIO} ${PERIOD} ${YEAR}
+                Rscript --vanilla ~/Repositories/hazards/R/04_indices/calc_NDWL0_sh.R ${GCM} ${SCENARIO} ${PERIOD} ${YEAR}
             done
         done
     done
