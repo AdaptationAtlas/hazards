@@ -22,6 +22,8 @@ As of January 2022, we have calculated a total of 10 hazard indices. The descrip
   - NDWL0: number of days with soil waterlogging at moisture content at start of saturation or above.
   - NDWL50: number of days with soil waterlogging at moisture content 50% between field capacity and saturation.
 
+These data are available for two SSPs (SSP2-4.5, SSP5=8.5), two periods (2021-2040, 2041-2060), and five GCMs (ACCESS-ESM1-5, MPI-ESM1-2-HR, EC-Earth3, INM-CM5-0, MRI-ESM2-0) in addition to the multi-model ensemble mean.
+
 ## Where is the data?
 While the Atlas is under development, the data is internally available to Atlas scientists in the EiA server under `~/common_data/atlas_hazards/cmip6`. The data are also available in the [AWS S3](s3://digital-atlas/Updates_for_MVP_Release/1_hazards/) and [Google Cloud](gs://adaptation-atlas/cmip6_hazards/) buckets.
 
