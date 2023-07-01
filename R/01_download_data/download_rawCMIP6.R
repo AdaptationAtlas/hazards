@@ -75,7 +75,7 @@ downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="
     terra::writeRaster(r_his, filename=fname_his)
     
     #clean up
-    rm(data_rcp)
+    rm(data_his)
     gc(verbose=FALSE, full=TRUE)
   } else {
     cat("historical data already exists, loading\n")
@@ -115,7 +115,7 @@ for (i in 1:length(dataset_list)) {
                                   rcp=scenario, 
                                   varname=varname, 
                                   years.hist=1995:2014, 
-                                  years.rcp=2061:2100, 
+                                  years.rcp=2061:2100, #previously i had done 2021:2060
                                   lons=c(-23, 59), 
                                   lats=c(-37, 40), 
                                   basedir=wd)
