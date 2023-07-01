@@ -17,10 +17,10 @@ ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 anm_pth <- paste0(root,'/esfg_cmip6/intermediate/interpolated_mthly_anomaly')
 
 # Setup
-gcms <- c('EC-Earth3') # 'ACCESS-ESM1-5','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0'
-ssps <- c('ssp245','ssp585')
+gcms <- c('ACCESS-ESM1-5') # 'ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0'
+ssps <- c('ssp126','ssp245','ssp370','ssp585')
 vrss <- c('pr','tasmax','tasmin')
-prds <- c('2021_2040','2041_2060')
+prds <- c('2021_2040','2041_2060', '2061_2080', '2081_2100')
 stp <- base::expand.grid(gcms,ssps,vrss,prds) %>% base::as.data.frame()
 names(stp) <- c('gcm','ssp','var','prd'); rm(gcms, ssps, vrss, prds)
 stp <- stp %>%
@@ -34,6 +34,7 @@ stp <- stp %>%
 
 # Read monthly deltas
 get_daily_future_data <- function(gcm, ssp, var, prd){
+  cat(paste0("processing ",var,'_',gcm,'_',ssp,'_',prd,' \n'))
   prd <- as.character(prd)
   file <- paste0('CMIP6_',gcm,'_',ssp,'_r1i1p1f1_',var,'_Africa_monthly_intp_anomaly_',prd,'.tif')
   # Load deltas
@@ -75,7 +76,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
           delta <- dlts[[j]]
           his_daily <- his_lst[[j]]
           fut_daily <- fut_lst[[j]]
-          plan(multicore, workers = 20)
+          plan(multicore, workers = 5)
           1:length(his_daily) %>%
             furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',fut_daily[k])
@@ -122,7 +123,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
           fut_daily   <- fut_lst[[j]]
           yrs_daily   <- yrs_lst[[j]]
           yrs_f_daily <- yrs_f_lst[[j]]
-          plan(multicore, workers = 20)
+          plan(multicore, workers = 5)
           1:length(his_daily) %>%
             furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',yrs_f_daily[k],'/',fut_daily[k]); dir.create(dirname(outfile),F,T)

@@ -212,24 +212,31 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 #loop rcp, variables, and period for given gcm
 #add these rcps later "ssp126", "ssp370"
 #add this variable later "tas"
-#gcm_i <- 3
-#rcp <- "ssp585" #"ssp585"
+gcm_i <- 3
+#rcp <- "ssp370" #"ssp585"
 #varname <- "tasmin" #"tasmin", "tasmax", "pr"
 
-for (rcp in c("ssp245", "ssp585")) {
+for (rcp in c("ssp126","ssp245","ssp370", "ssp585")) {
   for (varname in c("tasmin", "tasmax", "pr")) {
-    for (futperiod in c("near", "mid")) {
-      #rcp <- "ssp585"; varname <- "tasmin"; futperiod <- "mid"
+    for (futperiod in c("near", "mid", "far", "end")) {
+      #rcp <- "ssp585"; varname <- "tasmin"; futperiod <- "far"
       cat("processing gcm=", gcm_list[gcm_i], "/ rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")
       
       #define historical and future periods
       his_period <- 1995:2014
       if (futperiod == "near") {rcp_period <- 2021:2040}
       if (futperiod == "mid") {rcp_period <- 2041:2060}
+      if (futperiod == "far") {rcp_period <- 2061:2080}
+      if (futperiod == "end") {rcp_period <- 2081:2100}
       
       #data files
       his_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_historical_r1i1p1f1_", varname, "_Africa_daily.tif")
-      rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily.tif")
+      if (futperiod %in% c("near", "mid")) {
+        rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily.tif")
+      } else {
+        rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily_2061-2100.tif")
+      }
+      
       
       #historical climatology
       his_clm <- calc_climatology(data_file=his_file, 

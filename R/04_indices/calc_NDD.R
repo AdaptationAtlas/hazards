@@ -46,10 +46,14 @@ calc_ndd <- function(yr, mn){
 #   base::as.data.frame()
 # pr_pth <- paste0(root,'/chirps_wrld') # Daily precipitation
 # out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/NDD')
+# 
+# 1:nrow(stp) %>%
+#   purrr::map(.f = function(i){calc_ndd(yr = stp$yrs[i], mn = stp$mns[i])})
 
+###
 # Future setup
-gcm <- 'MPI-ESM1-2-HR'
-ssp <- 'ssp245'
+gcm <- 'ACCESS-ESM1-5'
+ssp <- 'ssp585'
 prd <- '2041_2060'
 
 cmb <- paste0(ssp,'_',gcm,'_',prd)

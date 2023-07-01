@@ -157,6 +157,19 @@ make_class_tb <- function() {
   full_tb <- full_tb %>%
     dplyr::bind_rows(cat_df)
   
+  #PTOT: total monthly precipitation
+  cat_df <- c(-Inf,   50,  4,
+              50,   100,  3,
+              100,  150,  2,
+              150, Inf,  1)
+  cat_df <- as.data.frame(matrix(cat_df, ncol = 3, byrow = T))
+  names(cat_df) <- c("lower_lim", "upper_lim", "class")
+  cat_df <- cat_df %>%
+    dplyr::mutate(index_name="PTOT", version="mvp") %>%
+    dplyr::select(index_name, version, lower_lim:class)
+  full_tb <- full_tb %>%
+    dplyr::bind_rows(cat_df)
+  
   #add class names
   cls <- data.frame(class = 1:4, description = c('No significant stress','Moderate','Severe','Extreme'))
   full_tb <- full_tb %>%

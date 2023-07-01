@@ -45,8 +45,8 @@ dataset_list <- c("CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1",
                   "CMIP6_MRI-ESM2-0_scenario_r1i1p1f1")
 
 #function to download CMIP6 data
-downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="ssp585", varname="tas", 
-                          years.hist=1995:2014, years.rcp=2021:2060, lons=c(-23, 59), lats=c(-37, 40),
+downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="ssp585", varname="pr", 
+                          years.hist=1995:2014, years.rcp=2021:2099, lons=c(-23, 59), lats=c(-37, 40),
                           basedir) {
   #info
   cat("dataset=", ds_name, "/ rcp=", rcp, "/ variable=", varname, "\n")
@@ -83,7 +83,7 @@ downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="
   }
   
   #rcp data, file name
-  fname_rcp <- paste0(basedir, "/", dataset.rcp,"_",varname,"_Africa_daily.tif")
+  fname_rcp <- paste0(basedir, "/", dataset.rcp,"_",varname,"_Africa_daily_",min(years.rcp), "-", max(years.rcp), ".tif")
   if (!file.exists(fname_rcp)) {
     #loading mean temperature, rcp
     cat("downloading rcp data, please wait...\n")
@@ -108,13 +108,14 @@ downloadCMIP6 <- function(ds_name="CMIP6_ACCESS-ESM1-5_scenario_r1i1p1f1", rcp="
 
 #run function
 for (i in 1:length(dataset_list)) {
+  #i <- 3
   for (scenario in c("ssp126", "ssp245", "ssp370", "ssp585")) {
     for (varname in c("tas", "tasmin", "tasmax", "pr")) {
       cmip6_data <- downloadCMIP6(ds_name=dataset_list[i], 
                                   rcp=scenario, 
                                   varname=varname, 
                                   years.hist=1995:2014, 
-                                  years.rcp=2021:2060, 
+                                  years.rcp=2061:2100, 
                                   lons=c(-23, 59), 
                                   lats=c(-37, 40), 
                                   basedir=wd)
