@@ -41,8 +41,12 @@ read_rsdsCMIP6 <- function(ds_name="rsds_day_ACCESS-ESM1-5", variant="r1i1p1f1",
     r_his <- r_his %>%
       terra::rotate(.) %>%
       terra::crop(., terra::ext(lons, lats))
+    names(r_his) <- paste(terra::time(r_his))
     
-    #write file
+    #unit conversion #w/m2 = J/m2/s / 1000000 * 86400 = MJ/m2/day
+    r_his <- r_his * 24 * 3600 / 1000000
+    
+    #write file, this is in crop model units (MJ/m2/day)
     terra::writeRaster(r_his, filename=fname_his)
     
     #clean up
@@ -65,16 +69,20 @@ read_rsdsCMIP6 <- function(ds_name="rsds_day_ACCESS-ESM1-5", variant="r1i1p1f1",
       terra::rotate(.) %>%
       terra::crop(., terra::ext(lons, lats))
     
-    #write file
-    terra::writeRaster(r_rcp, filename=fname_his)
+    #unit conversion #w/m2 = J/m2/s / 1000000 * 86400 = MJ/m2/day
+    r_rcp <- r_rcp * 24 * 3600 / 1000000
+    
+    #write file, this is in crop model units (MJ/m2/day)
+    terra::writeRaster(r_rcp, filename=fname_rcp)
     
     #clean up
     rm(r_rcp)
     gc(verbose=FALSE, full=TRUE)
   } else {
-    cat("historical data already exists, loading\n")
+    cat("rcp data already exists, loading\n")
     r_rcp <- terra::rast(fname_rcp)
   }
+  return(list(his=r_his, rcp=r_rcp))
 }
 
 ###get list of gcm files
@@ -115,7 +123,7 @@ getGCMFileList <- function(ds_name="rsds_day_ACCESS-ESM1-5", rcp="ssp585", varia
     hdates2 <- seq(from=as.Date('1995-12-31'), to=as.Date('2014-12-31'), by='year') %>%
       paste0(.) %>% gsub("-", "", .)
     hdates <- data.frame(d1=hdates1, d2=hdates2) %>%
-      dplyr::mutate(fullname = paste0(ds_name, "_historical_", variant, "_gn_",d1, "-", d2, ".nc"))
+      dplyr::mutate(fullname = paste0(ds_name, "_historical_", variant, "_gr_",d1, "-", d2, ".nc"))
     out.list$his <- paste0(hdates$fullname)
     
     #rcp
@@ -124,13 +132,13 @@ getGCMFileList <- function(ds_name="rsds_day_ACCESS-ESM1-5", rcp="ssp585", varia
     rdates2 <- seq(from=as.Date('2015-12-31'), to=as.Date('2100-12-31'), by='year') %>%
       paste0(.) %>% gsub("-", "", .)
     rdates <- data.frame(d1=rdates1, d2=rdates2) %>%
-      dplyr::mutate(fullname = paste0(ds_name, "_", rcp, "_", variant, "_gn_",d1, "-", d2, ".nc"))
+      dplyr::mutate(fullname = paste0(ds_name, "_", rcp, "_", variant, "_gr_",d1, "-", d2, ".nc"))
     out.list$rcp <- paste0(rdates$fullname)
   } else if (ds_name == "rsds_day_INM-CM5-0") {
-    out.list$his <- c(paste0(ds_name, "_historical_", variant, "_gn_19500101-19991231.nc"),
-                      paste0(ds_name, "_historical_", variant, "_gn_20000101-20141231.nc"))
-    out.list$rcp <- c(paste0(ds_name, "_", rcp, "_", variant, "_gn_20150101-20641231.nc"),
-                      paste0(ds_name, "_", rcp, "_", variant, "_gn_20650101-21001231.nc"))
+    out.list$his <- c(paste0(ds_name, "_historical_", variant, "_gr1_19500101-19991231.nc"),
+                      paste0(ds_name, "_historical_", variant, "_gr1_20000101-20141231.nc"))
+    out.list$rcp <- c(paste0(ds_name, "_", rcp, "_", variant, "_gr1_20150101-20641231.nc"),
+                      paste0(ds_name, "_", rcp, "_", variant, "_gr1_20650101-21001231.nc"))
   } else if (ds_name == "rsds_day_MRI-ESM2-0") {
     out.list$his <- c(paste0(ds_name, "_historical_", variant, "_gn_19500101-19991231.nc"),
                       paste0(ds_name, "_historical_", variant, "_gn_20000101-20141231.nc"))
@@ -140,3 +148,20 @@ getGCMFileList <- function(ds_name="rsds_day_ACCESS-ESM1-5", rcp="ssp585", varia
   return(out.list)
 }
 
+
+#run function
+for (i in 1:length(dataset_list)) {
+  #i <- 3
+  for (scenario in c("ssp126", "ssp245", "ssp370", "ssp585")) {
+    rsds_data <- read_rsdsCMIP6(ds_name=dataset_list[i], 
+                                variant="r1i1p1f1",
+                                rcp=scenario, 
+                                years.hist=1995:2014, 
+                                years.rcp=2061:2100,
+                                lons=c(-23, 59), 
+                                lats=c(-37, 40), 
+                                basedir=wd)
+    rm(rsds_data)
+    gc(verbose=FALSE, full=TRUE)
+  }
+}

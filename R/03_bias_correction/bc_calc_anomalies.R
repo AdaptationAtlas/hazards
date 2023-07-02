@@ -12,6 +12,7 @@ options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notat
 #working directory
 wd <- "~/common_data/esfg_cmip6"
 raw_dir <- paste0(wd, "/raw")
+rsds_dir <- paste0(wd, "/raw_rsds")
 int_dir <- paste0(wd, "/intermediate")
 if (!file.exists(int_dir)) {dir.create(int_dir)}
 
@@ -214,10 +215,10 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 #add this variable later "tas"
 gcm_i <- 3
 #rcp <- "ssp370" #"ssp585"
-#varname <- "tasmin" #"tasmin", "tasmax", "pr"
+#varname <- "tasmin" #"tasmin", "tasmax", "pr", "rsds"
 
 for (rcp in c("ssp126","ssp245","ssp370", "ssp585")) {
-  for (varname in c("tasmin", "tasmax", "pr")) {
+  for (varname in c("tasmin", "tasmax", "pr", "rsds")) {
     for (futperiod in c("near", "mid", "far", "end")) {
       #rcp <- "ssp585"; varname <- "tasmin"; futperiod <- "far"
       cat("processing gcm=", gcm_list[gcm_i], "/ rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")
@@ -230,13 +231,17 @@ for (rcp in c("ssp126","ssp245","ssp370", "ssp585")) {
       if (futperiod == "end") {rcp_period <- 2081:2100}
       
       #data files
-      his_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_historical_r1i1p1f1_", varname, "_Africa_daily.tif")
-      if (futperiod %in% c("near", "mid")) {
-        rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily.tif")
+      if (varname == "rsds") {
+        his_file <- paste0(rsds_dir, "/", gcm_list[gcm_i], "_historical_r1i1p1f1_", varname, "_Africa_daily.tif")
+        rcp_file <- paste0(rsds_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily.tif")
       } else {
-        rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily_2061-2100.tif")
+        his_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_historical_r1i1p1f1_", varname, "_Africa_daily.tif")
+        if (futperiod %in% c("near", "mid")) {
+          rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily.tif")
+        } else {
+          rcp_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily_2061-2100.tif")
+        }
       }
-      
       
       #historical climatology
       his_clm <- calc_climatology(data_file=his_file, 
