@@ -214,7 +214,7 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 #add these rcps later "ssp126", "ssp370"
 #add this variable later "tas"
 gcm_i <- 3
-rcp <- "ssp585" #"ssp585"
+rcp <- "ssp245" #"ssp585"
 #varname <- "tasmin" #"tasmin", "tasmax", "pr", "rsds"
 
 #for (rcp in c("ssp126","ssp245","ssp370", "ssp585")) {
