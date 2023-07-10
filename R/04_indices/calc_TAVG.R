@@ -12,7 +12,7 @@ root <- '/home/jovyan/common_data'
 
 ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 
-sce_climate <- "historical" #"future"
+sce_climate <- "future" #"future"
 
 # Calculate tavg function
 calc_tav <- function(yr, mn){
@@ -68,10 +68,14 @@ if (sce_climate == "historical") {
   tn_pth <- paste0(root,'/chirts/Tmin') # Daily minimum temperature
   out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical')
   1:nrow(stp) %>%
-    purrr::map(.f = function(i){calc_tav(yr = stp$yrs[i], mn = stp$mns[i])})
+    purrr::map(.f = function(i){
+      calc_tav(yr = stp$yrs[i], mn = stp$mns[i])
+      tmpfls <- list.files(tempdir(), full.names=TRUE)
+      1:length(tmpfls) %>% purrr::map(.f = function(k) {system(paste0("rm -f ", tmpfls[k]))})
+    })
 } else if (sce_climate == "future") {
   # Future setup
-  gcm <- 'MPI-ESM1-2-HR' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+  gcm <- 'MRI-ESM2-0' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
   for (ssp in c('ssp245', 'ssp585')) { #'ssp126' 'ssp370'
     for (prd in c('2021_2040', '2041_2060')) { #'2061_2080', '2081_2100'
       cat("...processing gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "\n")
@@ -92,7 +96,11 @@ if (sce_climate == "historical") {
       out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb)
       
       1:nrow(stp) %>%
-        purrr::map(.f = function(i){calc_tav(yr = stp$yrs[i], mn = stp$mns[i])})
+        purrr::map(.f = function(i){
+          calc_tav(yr = stp$yrs[i], mn = stp$mns[i])
+          tmpfls <- list.files(tempdir(), full.names=TRUE)
+          1:length(tmpfls) %>% purrr::map(.f = function(k) {system(paste0("rm -f ", tmpfls[k]))})
+        })
     }
   }
 } else {

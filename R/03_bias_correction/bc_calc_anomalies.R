@@ -214,11 +214,11 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 #add these rcps later "ssp126", "ssp370"
 #add this variable later "tas"
 gcm_i <- 3
-rcp <- "ssp245" #"ssp585"
+rcp <- "ssp585" #"ssp585"
 #varname <- "tasmin" #"tasmin", "tasmax", "pr", "rsds"
 
 #for (rcp in c("ssp126","ssp245","ssp370", "ssp585")) {
-  for (varname in c("tasmin", "tasmax", "pr", "rsds")) {
+  for (varname in c("tasmin", "tasmax", "pr")) { #"rsds"
     for (futperiod in c("near", "mid", "far", "end")) {
       #rcp <- "ssp585"; varname <- "tasmin"; futperiod <- "far"
       cat("processing gcm=", gcm_list[gcm_i], "/ rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")

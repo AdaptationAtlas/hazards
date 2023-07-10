@@ -170,6 +170,19 @@ make_class_tb <- function() {
   full_tb <- full_tb %>%
     dplyr::bind_rows(cat_df)
   
+  #TAVG: monthly mean temperature
+  cat_df <- c(-Inf,   20,  1,
+              20,   30,  2,
+              30,  35,  3,
+              35, Inf,  4)
+  cat_df <- as.data.frame(matrix(cat_df, ncol = 3, byrow = T))
+  names(cat_df) <- c("lower_lim", "upper_lim", "class")
+  cat_df <- cat_df %>%
+    dplyr::mutate(index_name="TAVG", version="mvp") %>%
+    dplyr::select(index_name, version, lower_lim:class)
+  full_tb <- full_tb %>%
+    dplyr::bind_rows(cat_df)
+  
   #add class names
   cls <- data.frame(class = 1:4, description = c('No significant stress','Moderate','Severe','Extreme'))
   full_tb <- full_tb %>%

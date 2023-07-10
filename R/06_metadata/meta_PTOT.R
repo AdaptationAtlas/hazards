@@ -1,6 +1,6 @@
 #Create Atlas metadata for PTOT: total monthly precipitation
 #also creates a single uploadable dataset for the S3/Google buckets.
-#JRV, Jan 2023
+#JRV, July 2023
 
 # Clean-up
 rm(list = ls()) # Remove objects
