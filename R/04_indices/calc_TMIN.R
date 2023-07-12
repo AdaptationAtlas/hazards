@@ -12,7 +12,7 @@ root <- '/home/jovyan/common_data'
 
 ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 
-sce_climate <- "historical" #"future"
+sce_climate <- "future" #"future"
 
 # Calculate tmin function
 calc_tmn <- function(yr, mn){
@@ -63,7 +63,7 @@ if (sce_climate == "historical") {
     })
 } else if (sce_climate == "future") {
   # Future setup
-  gcm <- 'MRI-ESM2-0' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+  gcm <- 'ACCESS-ESM1-5' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
   for (ssp in c('ssp245', 'ssp585')) { #'ssp126' 'ssp370'
     for (prd in c('2021_2040', '2041_2060')) { #'2061_2080', '2081_2100'
       cat("...processing gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "\n")
