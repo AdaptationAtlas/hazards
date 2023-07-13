@@ -63,7 +63,7 @@ if (sce_climate == "historical") {
     })
 } else if (sce_climate == "future") {
   # Future setup
-  gcm <- 'ACCESS-ESM1-5' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+  gcm <- 'EC-Earth3' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
   for (ssp in c('ssp245', 'ssp585')) { #'ssp126' 'ssp370'
     for (prd in c('2021_2040', '2041_2060')) { #'2061_2080', '2081_2100'
       cat("...processing gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "\n")

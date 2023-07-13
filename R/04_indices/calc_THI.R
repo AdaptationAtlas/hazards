@@ -25,8 +25,9 @@ calc_thi <- function(yr, mn, dataset="CHIRPS"){
     dir.create(dirname(outfile3),F,T)
     # Last day of the month
     last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
+    
     # Sequence of dates
-    if(as.numeric(yr) > 2020 & mn == '02'){
+    if(dataset == "CHIRPS" & as.numeric(yr) > 2020 & mn == '02'){
       dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-28')), by = 'day')
     } else {
       dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
@@ -49,7 +50,7 @@ calc_thi <- function(yr, mn, dataset="CHIRPS"){
       #only for historical climate
       tx_fls <- paste0(ae5tx_pth,'/Temperature-Air-2m-Max-24h_C3S-glob-agric_AgERA5_',gsub(pattern='-', replacement='', x=dts, fixed=T),'_final-v1.0.nc')
       rh_fls <- paste0(ae5rh_pth,'/Relative-Humidity-2m-12h_C3S-glob-agric_AgERA5_',gsub(pattern='-', replacement='', x=dts, fixed=T),'_final-v1.0.nc')
-      if(as.numeric(yr) > 2020){stop("dataset AgERA5 does not allow for future climate calculations\n")}
+      if(as.numeric(yr) > 2020 & sce_climate == "future"){stop("dataset AgERA5 does not allow for future climate calculations\n")}
     }
     tx_fls <- tx_fls[file.exists(tx_fls)]
     rh_fls <- rh_fls[file.exists(rh_fls)]
