@@ -18,7 +18,7 @@ dataset_list <- c("day_ACCESS-ESM1-5",
                   "day_MRI-ESM2-0")
 
 #function to download CMIP6 data r1i1p1f1
-read_rsdsCMIP6 <- function(ds_name="day_ACCESS-ESM1-5", variant="r1i1p1f1", rcp="ssp126",
+read_rshuCMIP6 <- function(ds_name="day_ACCESS-ESM1-5", variant="r1i1p1f1", rcp="ssp126",
                            varname="rsds", years.hist=1995:2014, years.rcp=2021:2100, lons=c(-23, 59), 
                            lats=c(-37, 40), basedir) {
   
@@ -51,14 +51,13 @@ read_rsdsCMIP6 <- function(ds_name="day_ACCESS-ESM1-5", variant="r1i1p1f1", rcp=
     terra::writeRaster(r_his, filename=fname_his)
     
     #clean up
-    rm(r_his)
     gc(verbose=FALSE, full=TRUE)
   } else {
     cat("historical data already exists, loading\n")
     r_his <- terra::rast(fname_his)
   }
   
-  #load historical data
+  #load rcp data
   fname_rcp <- paste0(basedir, "/CMIP6_", ds_name, "_", rcp, "_", varname, "_Africa_daily.tif")
   fname_rcp <- gsub(pattern="_day", replacement="", x=fname_rcp)
   if (!file.exists(fname_rcp)) {
@@ -69,6 +68,7 @@ read_rsdsCMIP6 <- function(ds_name="day_ACCESS-ESM1-5", variant="r1i1p1f1", rcp=
     r_rcp <- r_rcp %>%
       terra::rotate(.) %>%
       terra::crop(., terra::ext(lons, lats))
+    names(r_rcp) <- paste(terra::time(r_rcp))
     
     #unit conversion #w/m2 = J/m2/s / 1000000 * 86400 = MJ/m2/day
     if (varname == "rsds") {r_rcp <- r_rcp * 24 * 3600 / 1000000}
@@ -77,7 +77,6 @@ read_rsdsCMIP6 <- function(ds_name="day_ACCESS-ESM1-5", variant="r1i1p1f1", rcp=
     terra::writeRaster(r_rcp, filename=fname_rcp)
     
     #clean up
-    rm(r_rcp)
     gc(verbose=FALSE, full=TRUE)
   } else {
     cat("rcp data already exists, loading\n")
@@ -101,7 +100,7 @@ getGCMFileList <- function(ds_name="day_ACCESS-ESM1-5", rcp="ssp585", variant="r
                       paste0(varname, "_", ds_name, "_historical_", variant, "_gn_20100101-20141231.nc"))
     out.list$rcp <- c(paste0(varname, "_", ds_name, "_", rcp, "_", variant, "_gn_20150101-20191231.nc"),
                       paste0(varname, "_", ds_name, "_", rcp, "_", variant, "_gn_20200101-20241231.nc"),
-                      paste0(varname, "_", ds_name, "_", rcp, "_", variant, "_gn_202500101-20291231.nc"),
+                      paste0(varname, "_", ds_name, "_", rcp, "_", variant, "_gn_20250101-20291231.nc"),
                       paste0(varname, "_", ds_name, "_", rcp, "_", variant, "_gn_20300101-20341231.nc"),
                       paste0(varname, "_", ds_name, "_", rcp, "_", variant, "_gn_20350101-20391231.nc"),
                       paste0(varname, "_", ds_name, "_", rcp, "_", variant, "_gn_20400101-20441231.nc"),
@@ -155,7 +154,7 @@ for (i in 1:length(dataset_list)) {
   for (vn in c("rsds","hurs")) {
     #i <- 3
     for (scenario in c("ssp126", "ssp245", "ssp370", "ssp585")) {
-      out_data <- read_rsdsCMIP6(ds_name=dataset_list[i], 
+      out_data <- read_rshuCMIP6(ds_name=dataset_list[i], 
                                  variant="r1i1p1f1",
                                  rcp=scenario, 
                                  varname=vn,

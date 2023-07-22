@@ -15,8 +15,8 @@ ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 sce_climate <- "future" #"future"
 
 # Calculate tmin function
-calc_tmn <- function(yr, mn){
-  outfile <- paste0(out_dir,'/TMIN/TMIN-',yr,'-',mn,'.tif')
+calc_tmn <- function(yr, mn, dataset="CHIRPS"){
+  outfile <- paste0(out_dir,'/TMIN-',yr,'-',mn,'.tif')
   if(!file.exists(outfile)){
     cat(outfile, "\n")
     dir.create(dirname(outfile),F,T)
@@ -26,13 +26,22 @@ calc_tmn <- function(yr, mn){
     dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
     
     # Files
-    tnfls <- paste0(tn_pth,'/',yr,'/Tmin.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
-    tnfls <- tnfls[file.exists(tnfls)]
+    if (dataset == "CHIRPS") {
+      tn_fls <- paste0(tn_pth,'/',yr,'/Tmin.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
+    } else if (dataset == "AgERA5") {
+      tn_fls <- paste0(ae5tn_pth,'/Temperature-Air-2m-Min-24h_C3S-glob-agric_AgERA5_',gsub(pattern='-', replacement='', x=dts, fixed=T),'_final-v1.0.nc')
+    }
+    tn_fls <- tn_fls[file.exists(tn_fls)]
     
     # Read temperature data
-    tmn <- terra::rast(tnfls)
-    tmn <- tmn %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
-    tmn[tmn <= -9990] <- NA
+    tmn <- terra::rast(tn_fls)
+    if (dataset == "AgERA5") {
+      tmn <- tmn %>% terra::crop(terra::ext(ref)) %>% terra::resample(., ref) %>% terra::mask(ref)
+      tmn <- tmn - 273.15
+    } else {
+      tmn <- tmn %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+      tmn[tmn == -9999] <- NA
+    }
     
     # Calculate heat stress generic crop
     terra::app(x   = tmn,
@@ -46,7 +55,7 @@ calc_tmn <- function(yr, mn){
 
 if (sce_climate == "historical") {
   # Historical setup
-  yrs <- 1995:2014
+  yrs <- 1981:2022 #1995:2014
   mns <- c(paste0('0',1:9),10:12)
   stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
   names(stp) <- c('yrs','mns')
@@ -54,16 +63,17 @@ if (sce_climate == "historical") {
     dplyr::arrange(yrs, mns) %>%
     base::as.data.frame()
   tn_pth <- paste0(root,'/chirts/Tmin') # Daily minimum temperature
-  out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical')
+  ae5tn_pth <- paste0(root,'/ecmwf_agera5/2m_temperature-24_hour_minimum') # Minimum temperature
+  out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/historical/TMIN_AgERA5')
   1:nrow(stp) %>%
     purrr::map(.f = function(i){
-      calc_tmn(yr = stp$yrs[i], mn = stp$mns[i])
+      calc_tmn(yr = stp$yrs[i], mn = stp$mns[i], dataset="AgERA5")
       tmpfls <- list.files(tempdir(), full.names=TRUE)
       1:length(tmpfls) %>% purrr::map(.f = function(k) {system(paste0("rm -f ", tmpfls[k]))})
     })
 } else if (sce_climate == "future") {
   # Future setup
-  gcm <- 'MPI-ESM1-2-HR' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+  gcm <- 'MRI-ESM2-0' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
   for (ssp in c('ssp245', 'ssp585')) { #'ssp126' 'ssp370'
     for (prd in c('2021_2040', '2041_2060')) { #'2061_2080', '2081_2100'
       cat("...processing gcm=", gcm, "/ ssp=", ssp, "/ period=", prd, "\n")
@@ -80,7 +90,7 @@ if (sce_climate == "historical") {
         dplyr::arrange(yrs, mns) %>%
         base::as.data.frame()
       tn_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Daily minimum temperatures
-      out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb)
+      out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/TMIN')
       
       1:nrow(stp) %>%
         purrr::map(.f = function(i){

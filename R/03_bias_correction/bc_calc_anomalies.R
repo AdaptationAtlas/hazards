@@ -13,6 +13,7 @@ options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notat
 wd <- "~/common_data/esfg_cmip6"
 raw_dir <- paste0(wd, "/raw")
 rsds_dir <- paste0(wd, "/raw_rsds")
+hurs_dir <- paste0(wd, "/raw_hurs")
 int_dir <- paste0(wd, "/intermediate")
 if (!file.exists(int_dir)) {dir.create(int_dir)}
 
@@ -42,6 +43,7 @@ calc_climatology <- function(data_file, period, sce_lab, gcm_name, varname, mth_
   
   #load raster
   r_data <- terra::rast(data_file)
+  if (varname %in% c("rsds","hurs") & sce_lab != "historical") {names(r_data) <- paste(terra::time(r_data))}
   
   #date data.frame
   date_df <- names(r_data) %>%
@@ -141,7 +143,7 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
       
       #calculate anomaly
       cat("calculating anomaly...\n")
-      if (varname %in% c('tasmax','tasmin','tas')) {
+      if (varname %in% c('tasmax','tasmin','tas','hurs')) {
         anom <- avg_fut - avg_his
       } else {
         #if precip is below zero make it zero
@@ -211,15 +213,15 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 
 ####
 #loop rcp, variables, and period for given gcm
-#add these rcps later "ssp126", "ssp370"
 #add this variable later "tas"
-gcm_i <- 3
-rcp <- "ssp370" #"ssp585"
-varname <- "pr" #"tasmin", "tasmax", "pr", "rsds"
+gcm_i <- 5
+#rcp <- "ssp126" #"ssp585"
+varname <- "hurs" #"tasmin", "tasmax", "pr", "rsds", "hurs"
+#futperiod <- "near"
 
-#for (rcp in c("ssp126","ssp245","ssp370", "ssp585")) {
-  #for (varname in c("tasmin", "tasmax", "pr")) { #"rsds"
-    for (futperiod in c("far", "end")) { #"near", "mid","far", "end"
+for (rcp in c("ssp126","ssp245","ssp370", "ssp585")) {
+  #for (varname in c("tasmin", "tasmax", "pr", "rsds")) { #"hurs"
+    for (futperiod in c("near", "mid","far", "end")) {
       #rcp <- "ssp585"; varname <- "tasmin"; futperiod <- "far"
       cat("processing gcm=", gcm_list[gcm_i], "/ rcp=",rcp, "/ variable=", varname, "/ period=", futperiod, "\n")
       
@@ -232,8 +234,11 @@ varname <- "pr" #"tasmin", "tasmax", "pr", "rsds"
       
       #data files
       if (varname == "rsds") {
-        his_file <- paste0(rsds_dir, "/", gcm_list[gcm_i], "_historical_r1i1p1f1_", varname, "_Africa_daily.tif")
-        rcp_file <- paste0(rsds_dir, "/", gcm_list[gcm_i], "_", rcp, "_r1i1p1f1_", varname, "_Africa_daily.tif")
+        his_file <- paste0(rsds_dir, "/", gcm_list[gcm_i], "_historical_", varname, "_Africa_daily.tif")
+        rcp_file <- paste0(rsds_dir, "/", gcm_list[gcm_i], "_", rcp, "_", varname, "_Africa_daily.tif")
+      } else if (varname == "hurs") {
+        his_file <- paste0(hurs_dir, "/", gcm_list[gcm_i], "_historical_", varname, "_Africa_daily.tif")
+        rcp_file <- paste0(hurs_dir, "/", gcm_list[gcm_i], "_", rcp, "_", varname, "_Africa_daily.tif")
       } else {
         his_file <- paste0(raw_dir, "/", gcm_list[gcm_i], "_historical_r1i1p1f1_", varname, "_Africa_daily.tif")
         if (futperiod %in% c("near", "mid")) {
@@ -281,4 +286,24 @@ varname <- "pr" #"tasmin", "tasmax", "pr", "rsds"
       gc(verbose=FALSE, full=TRUE, reset=TRUE)
     }
   #}
-#}
+}
+
+# ####
+# #plot pdf with all individual 12-month interpolated plots
+# fls <- list.files(path=paste0(int_dir, "/interpolated_mthly_anomaly"), pattern="\\.tif", full.names=TRUE)
+# 
+# pdf("~/bc_anomalies_check.pdf", width=10, height=10)
+# for (fl in fls) {
+#   cat(basename(fl), "\n")
+#   r <- terra::rast(fl) %>%
+#     terra::aggregate(., fact=20, fun="mean")
+#   title_txt <- basename(fl) %>%
+#     gsub("r1i1p1f1_", "", .) %>%
+#     gsub("CMIP6_", "", .) %>%
+#     gsub("Africa_monthly_intp_anomaly_", "", .) %>%
+#     gsub("\\.tif", "", .) %>%
+#     paste0()
+#   plot(r, main=title_txt)
+# }
+# dev.off()
+# 
