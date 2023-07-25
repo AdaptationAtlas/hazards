@@ -16,10 +16,7 @@ wd <- "~/common_data"
 #reference raster
 r_ref <- terra::rast(paste0(wd,'/atlas_hazards/roi/africa.tif'))
 
-#historical or future
-sce_climate <- "future" #"historical" "future"
-
-# Calculate NTx40 function
+# Calculate HSM_NTx function
 calc_hsm <- function(yr, mn, thr=35, allyear=FALSE){
   #yr <- 1995
   #mn <- '02'
@@ -81,6 +78,7 @@ calc_hsm <- function(yr, mn, thr=35, allyear=FALSE){
     }
     
     for (j in 1:length(thr)) {
+      cat("...processing threshold thr=", thr[j], "/", out_dir, "\n")
       #calculate heat stress day yes/no
       r_hsm <- c()
       for (.x in 1:terra::nlyr(tmx)) {
@@ -125,13 +123,15 @@ calc_hsm <- function(yr, mn, thr=35, allyear=FALSE){
 }
 
 # Setup
-#scenario <- "historical" #c("historical", "ssp245", "ssp585")
-#period <- "hist" #c("hist", "near", "mid")
-#gcm <- "ACCESS-ESM1-5" #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
+scenario <- "historical" #c("historical", "ssp245", "ssp585")
+period <- "hist" #c("hist", "near", "mid")
+gcm <- "ACCESS-ESM1-5" #"ACCESS-ESM1-5","MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")
 
-for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
-    for (scenario in c("historical", "ssp245", "ssp585")) {
-        for (period in c("hist","near", "mid")) {
+#for (scenario in c("historical", "ssp245", "ssp585")) {
+  if (scenario == "historical") {gcm_list <- "historical"} else {gcm_list <- c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")}
+#  for (gcm in gcm_list) {
+      if (scenario == "historical") {per_list <- "hist"} else {per_list <- c("near", "mid")}
+#      for (period in per_list) {
             #assign periods
             if (period == "hist") {yrs <- 1995:2014}
             if (period == "near") {yrs <- 2021:2040}
@@ -164,9 +164,9 @@ for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-E
                                                    mn = stp$mns[i],
                                                    thr = 30:50,
                                                    allyear = FALSE)})
-        }
-    }
-}
+#        }
+#    }
+#}
 
 
 # # ----------------------------------------------------------------------

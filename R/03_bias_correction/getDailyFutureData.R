@@ -19,7 +19,7 @@ anm_pth <- paste0(root,'/esfg_cmip6/intermediate/interpolated_mthly_anomaly')
 # Setup
 gcms <- c('ACCESS-ESM1-5') # 'ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0'
 ssps <- c('ssp126','ssp245','ssp370','ssp585')
-vrss <- c('pr','tasmax','tasmin')
+vrss <- c('pr','tasmax','tasmin','rsds','hurs')
 prds <- c('2021_2040','2041_2060', '2061_2080', '2081_2100')
 stp <- base::expand.grid(gcms,ssps,vrss,prds) %>% base::as.data.frame()
 names(stp) <- c('gcm','ssp','var','prd'); rm(gcms, ssps, vrss, prds)
@@ -27,9 +27,9 @@ stp <- stp %>%
   dplyr::arrange(gcm,ssp,prd,var) %>%
   base::as.data.frame()
 
-# gcm <- gcms[4]
+# gcm <- gcms[1]
 # ssp <- ssps[1]
-# var <- vrss[2]
+# var <- vrss[5]
 # prd <- prds[1]
 
 # Read monthly deltas
@@ -60,14 +60,25 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
   mpg$year_fut <- lubridate::year(mpg$Future)
   mpg$month <- lubridate::month(mpg$Baseline)
   
-  if(var == 'pr'){
+  if(var %in% c('pr','rsds')){
     # Paths
-    his_pth <- paste0(root,'/chirps_wrld')
-    fut_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd); dir.create(fut_pth, F, T)
+    if (var == "pr") {
+      his_pth <- paste0(root,'/chirps_wrld')
+      fut_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd); dir.create(fut_pth, F, T)
+    } else if (var == "rsds") {
+      his_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')
+      fut_pth <- paste0(root,'/ecmwf_agera5_cmip6_africa/solar_radiation_flux_',gcm,'_',ssp,'_',prd)
+      dir.create(fut_pth, F, T)
+    }
     if(length(list.files(fut_pth)) < 7300){
       # File structure
-      his_str <- paste0('chirps-v2.0.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
-      fut_str <- paste0('chirps-v2.0.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif')
+      if (var == "pr") {
+        his_str <- paste0('chirps-v2.0.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
+        fut_str <- paste0('chirps-v2.0.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif')
+      } else if (var == "rsds") {
+        his_str <- paste0('Solar-Radiation-Flux_C3S-glob-agric_AgERA5_',gsub(pattern='-', replacement='', x=mpg$Baseline, fixed=T),'_final-v1.0.nc')
+        fut_str <- paste0('Solar-Radiation-Flux_C3S-glob-agric_AgERA5_',gsub(pattern='-', replacement='', x=mpg$Future, fixed=T),'_final-v1.0.nc')
+      }
       # Split by months
       his_lst <- split(his_str, mpg$month)
       fut_lst <- split(fut_str, mpg$month)
@@ -82,8 +93,13 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
               outfile <- paste0(fut_pth,'/',fut_daily[k])
               if(!file.exists(outfile)){
                 r <- terra::rast(paste0(his_pth,'/',his_daily[k]))
-                r <- r %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
-                r[r == -9999] <- NA
+                if (var == "pr") {
+                  r <- r %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+                  r[r == -9999] <- NA
+                } else if (var == "rsds") {
+                  r <- r %>% terra::crop(terra::ext(ref)) %>% terra::resample(., ref) %>% terra::mask(ref)
+                  r <- r * 1e-6
+                }
                 r <- r * (1 + delta)
                 terra::writeRaster(r, outfile)
               }
@@ -92,22 +108,29 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
         })
     }
   }
-  if(var %in% c('tasmax','tasmin')){
+  if(var %in% c('tasmax','tasmin','hurs')){
     # Paths
     his_pth <- ifelse(var == 'tasmax',
                       paste0(root,'/chirts/Tmax'),
-                      paste0(root,'/chirts/Tmin'))
+                      ifelse(var == 'tasmin',
+                             paste0(root,'/chirts/Tmin'), 
+                             paste0(root,'/chirts/RHum')))
     fut_pth <- ifelse(var == 'tasmax',
                       paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd),
-                      paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd))
+                      ifelse(var == 'tasmin',
+                             paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd),
+                             paste0(root,'/chirts_cmip6_africa/RHum_',gcm,'_',ssp,'_',prd)))
     if(length(list.files(fut_pth)) < 7300){
       # File structure
       if(var == 'tasmax'){
         his_str <- paste0('Tmax.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
         fut_str <- paste0('Tmax.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif')
-      } else {
+      } else if (var == 'tasmin'){
         his_str <- paste0('Tmin.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
         fut_str <- paste0('Tmin.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif')
+      } else {
+        his_str <- paste0('RH.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
+        fut_str <- paste0('RH.',gsub(pattern='-', replacement='.', x=mpg$Future, fixed=T),'.tif')
       }
       yrs_str   <- mpg$year
       yrs_f_str <- mpg$year_fut
@@ -132,6 +155,11 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
                 r <- r %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
                 r[r == -9999] <- NA
                 r <- r + delta
+                #for hurs limit min to 0, max to 100
+                if (var == "hurs") {
+                  r <- min(r, 100)
+                  r <- max(r, 0)
+                }
                 terra::writeRaster(r, outfile)
               }
             })
