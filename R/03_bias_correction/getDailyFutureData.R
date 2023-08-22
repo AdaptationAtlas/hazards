@@ -17,7 +17,7 @@ ref <- terra::rast(paste0(root,'/atlas_hazards/roi/africa.tif'))
 anm_pth <- paste0(root,'/esfg_cmip6/intermediate/interpolated_mthly_anomaly')
 
 # Setup
-gcms <- c('ACCESS-ESM1-5') # 'ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0'
+gcms <- c('MRI-ESM2-0') # 'ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0'
 ssps <- c('ssp126','ssp245','ssp370','ssp585')
 vrss <- c('pr','tasmax','tasmin','rsds','hurs')
 prds <- c('2021_2040','2041_2060', '2061_2080', '2081_2100')
@@ -87,7 +87,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
           delta <- dlts[[j]]
           his_daily <- his_lst[[j]]
           fut_daily <- fut_lst[[j]]
-          plan(multicore, workers = 4)
+          plan(multicore, workers = 5)
           1:length(his_daily) %>%
             furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',fut_daily[k])
@@ -146,7 +146,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd){
           fut_daily   <- fut_lst[[j]]
           yrs_daily   <- yrs_lst[[j]]
           yrs_f_daily <- yrs_f_lst[[j]]
-          plan(multicore, workers = 4)
+          plan(multicore, workers = 5)
           1:length(his_daily) %>%
             furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',yrs_f_daily[k],'/',fut_daily[k]); dir.create(dirname(outfile),F,T)
