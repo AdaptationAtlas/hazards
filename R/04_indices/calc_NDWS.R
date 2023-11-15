@@ -40,13 +40,13 @@ calc_ndws <- function(yr, mn){
     tx_fls <- tx_fls[file.exists(tx_fls)]
     tm_fls <- paste0(tm_pth,'/',yr,'/Tmin.',gsub(pattern='-', replacement='.', x=dts, fixed=T),'.tif')
     tm_fls <- tm_fls[file.exists(tm_fls)]
-    if(as.numeric(yr) > 2020){
-      dts_chr <- as.character(dts)
-      dts_chr <- gsub(pattern = yr, replacement = yrs_mpg$Baseline[yrs_mpg$Future == yr], x = dts_chr)
-      dts <- as.Date(dts_chr); rm(dts_chr)
-    }
     sr_fls <- paste0(sr_pth,'/Solar-Radiation-Flux_C3S-glob-agric_AgERA5_',gsub(pattern='-', replacement='', x=dts, fixed=T),'_final-v1.0.nc')
     sr_fls <- sr_fls[file.exists(sr_fls)]
+    #if(as.numeric(yr) > 2020){
+    #  dts_chr <- as.character(dts)
+    #  dts_chr <- gsub(pattern = yr, replacement = yrs_mpg$Baseline[yrs_mpg$Future == yr], x = dts_chr)
+    #  dts <- as.Date(dts_chr); rm(dts_chr)
+    #}
     # Read variables
     prc <- terra::rast(pr_fls)
     prc <- prc %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
@@ -60,7 +60,7 @@ calc_ndws <- function(yr, mn){
     tav <- (tmx + tmn)/2
     srd <- terra::rast(sr_fls)
     srd <- srd %>% terra::crop(terra::ext(ref))
-    srd <- srd/1000000
+    if (yr <= 2020) {srd <- srd/1000000}
     srd <- srd %>% terra::resample(x = ., y = ref) %>% terra::mask(ref)
     
     # Maximum evapotranspiration
@@ -70,11 +70,15 @@ calc_ndws <- function(yr, mn){
     
     # Compute water balance model
     date <- paste0(yr,'-',mn)
-    if(date %in% c('1995-01','2021-01','2041-01')){
+    if(date %in% c('1995-01','2021-01','2041-01','2061-01','2081-01')){
       AVAIL <<- ref
       AVAIL[!is.na(AVAIL)] <- 0
     } else {
-      AVAIL <<- terra::rast(paste0(dirname(outfile),'/AVAIL.tif'))
+      avail_fl <- list.files(path=dirname(outfile), pattern="AVAIL-")
+      avail_fl <- avail_fl[grep(pattern="\\.tif", avail_fl)]
+      avail_fl <- avail_fl[length(avail_fl)]
+      AVAIL <<- terra::rast(paste0(dirname(outfile),"/", avail_fl))
+      AVAIL <<- AVAIL[[terra::nlyr(AVAIL)]]
     }
     
     eabyep_calc <- function(soilcp = scp, soilsat = ssat, avail = AVAIL,rain = prc[[1]], evap = ETMAX[[1]]){
@@ -100,7 +104,7 @@ calc_ndws <- function(yr, mn){
                       # Demand       = demand,
                       Eratio       = eratio
                       # Logging      = logging
-                      )
+      )
       return(out)
     }
     
@@ -118,7 +122,7 @@ calc_ndws <- function(yr, mn){
     # Calculate number of soil water stress days
     NDWS   <- terra::app(x = ERATIO, fun = function(ERATIO){ifelse(ERATIO < 0.5, 1, 0)}) %>% sum()
     terra::writeRaster(NDWS, outfile)
-    terra::writeRaster(AVAIL[[terra::nlyr(AVAIL)]], paste0(dirname(outfile),'/AVAIL.tif'), overwrite = T)
+    terra::writeRaster(AVAIL, paste0(dirname(outfile),'/AVAIL-',yr,'-',mn,'.tif'))
     
     #clean up
     rm(list=c("prc", "ETMAX", "AVAIL", "watbal", "ERATIO", "NDWS"))
@@ -144,39 +148,40 @@ calc_ndws <- function(yr, mn){
 
 
 # Future setup
-#gcm <- 'MPI-ESM1-2-HR' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
-for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
-    for (ssp in c('ssp245', 'ssp585')) {
-        for (prd in c('2021_2040', '2041_2060')) {
-            #ssp <- 'ssp245'
-            #prd <- '2021_2040'
-
-            cmb <- paste0(ssp,'_',gcm,'_',prd)
-            prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
-            yrs <- prd_num[1]:prd_num[2]
-            mns <- c(paste0('0',1:9),10:12)
-            stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
-            names(stp) <- c('yrs','mns')
-            stp <- stp %>%
-              dplyr::arrange(yrs, mns) %>%
-              base::as.data.frame()
-            pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
-            tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
-            tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
-            sr_pth <- paste0(root,'/ecmwf_agera5/solar_radiation_flux')             # Solar radiation
-            out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWS')
-
-            yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 2)),
-                                  Future = as.character(c(2021:2040,2041:2060)))
-
-            1:nrow(stp) %>%
-              purrr::map(.f = function(i){
-                calc_ndws(yr = stp$yrs[i], mn = stp$mns[i])
-                if (i%%5 == 0) {
-                  tmpfls <- list.files(tempdir(), full.names=TRUE)
-                  1:length(tmpfls) %>% purrr::map(.f = function(k) {system(paste0("rm -f ", tmpfls[k]))})
-                }
-              })
-        }
+gcm <- 'ACCESS-ESM1-5' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
+#for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
+  for (ssp in c('ssp126', 'ssp245', 'ssp370', 'ssp585')) {
+    for (prd in c('2021_2040', '2041_2060', '2061_2080', '2081_2100')) {
+      #ssp <- 'ssp126'
+      #prd <- '2021_2040'
+      
+      cmb <- paste0(ssp,'_',gcm,'_',prd)
+      prd_num <- as.numeric(unlist(strsplit(x = prd, split = '_')))
+      yrs <- prd_num[1]:prd_num[2]
+      mns <- c(paste0('0',1:9),10:12)
+      stp <- base::expand.grid(yrs, mns) %>% base::as.data.frame(); rm(yrs,mns)
+      names(stp) <- c('yrs','mns')
+      stp <- stp %>%
+        dplyr::arrange(yrs, mns) %>%
+        base::as.data.frame()
+      pr_pth <- paste0(root,'/chirps_cmip6_africa/Prec_',gcm,'_',ssp,'_',prd) # Precipitation
+      tx_pth <- paste0(root,'/chirts_cmip6_africa/Tmax_',gcm,'_',ssp,'_',prd) # Maximum temperature
+      tm_pth <- paste0(root,'/chirts_cmip6_africa/Tmin_',gcm,'_',ssp,'_',prd) # Minimum temperature
+      sr_pth <- paste0(root,'/ecmwf_agera5_cmip6_africa/solar_radiation_flux_',gcm,'_',ssp,'_',prd) # Solar radiation
+      out_dir <- paste0(root,'/atlas_hazards/cmip6/indices/',cmb,'/NDWS')
+      
+      yrs_mpg <- data.frame(Baseline = as.character(rep(1995:2014, 4)),
+                            Future = as.character(c(2021:2040,2041:2060,
+                                                    2061:2080,2081:2100)))
+      
+      1:nrow(stp) %>%
+        purrr::map(.f = function(i){
+          calc_ndws(yr = stp$yrs[i], mn = stp$mns[i])
+          if (i%%5 == 0) {
+            tmpfls <- list.files(tempdir(), full.names=TRUE)
+            1:length(tmpfls) %>% purrr::map(.f = function(k) {system(paste0("rm -f ", tmpfls[k]))})
+          }
+        })
     }
-}
+  }
+#}
