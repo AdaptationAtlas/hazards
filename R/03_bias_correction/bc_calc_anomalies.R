@@ -1,5 +1,6 @@
 #calculate and interpolate anomalies from GCM data
 #JRV, Dec 2022
+#HAE, Dec 2024
 
 #load libraries
 library(tidyverse)
@@ -125,31 +126,39 @@ calc_climatology <- function(data_file, period, sce_lab, gcm_name, varname, mth_
 #function to interpolate monthly anomalies
 intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varname, period) {
   #final output file name
-  anom_fname <- paste0(anom_dir, "/", gcm_name, "_", rcp, "_r1i1p1f1_", varname, "_Africa_monthly_intp_anomaly_", min(period), "_", max(period), ".tif")
+  anom_fname <- paste0(anom_dir, '/', gcm_name, '_', rcp, '_r1i1p1f1_', varname, '_Africa_monthly_intp_anomaly_', min(period), '_', max(period), '.tif')
   
   #create temporary directory to store monthly output (to reduce impact of server crashes)
-  anom_dname <- paste0(anom_dir, "/tmp_", gcm_name, "_", rcp, "_r1i1p1f1_", varname, "_Africa_monthly_intp_anomaly_", min(period), "_", max(period))
+  anom_dname <- paste0(anom_dir, '/tmp_', gcm_name, '_', rcp, '_r1i1p1f1_', varname, '_Africa_monthly_intp_anomaly_', min(period), '_', max(period))
   if (!file.exists(anom_dname)) {dir.create(anom_dname)}
   
   if (!file.exists(anom_fname)) {
-    r_anom <- c()
-    for (i in 1:12) {
-      #i <- 1
-      cat("processing interpolation for month i=", i, "\n")
+    
+    rcp_clm <- terra::wrap(rcp_clm)
+    his_clm <- terra::wrap(his_clm)
+    ref <- terra::wrap(ref)
+    
+    plan(multisession, workers = 12)
+    r_anom <- furrr::future_map(.x = 1:12, .f = function(.x){
+      
+      cat('processing interpolation for month i=', .x, '\n')
+      
+      rcp_clm_u <- terra::unwrap(rcp_clm)
+      his_clm_u <- terra::unwrap(his_clm)
+      ref_u <- terra::unwrap(ref); names(ref_u) <- 'mean'
       
       #get climatology rasters
-      avg_fut <- rcp_clm[[i]]
-      avg_his <- his_clm[[i]]
+      avg_fut <- rcp_clm_u[[.x]]
+      avg_his <- his_clm_u[[.x]]
       
       #calculate anomaly
-      cat("calculating anomaly...\n")
+      cat('calculating anomaly...\n')
       if (varname %in% c('tasmax','tasmin','tas','hurs')) {
         anom <- avg_fut - avg_his
       } else {
-        #if precip is below zero make it zero
-        avg_his[avg_his[] < 0] <- 0
-        avg_fut[avg_fut[] < 0] <- 0
-        avg_his[avg_his[] == 0] <- 0.01 #if historical has exactly zero make it non-zero
+        # if precipitation is below or very close to zero make it 0.01
+        avg_his[avg_his[] <= 0.01] <- 0.01 # if historical has exactly zero make it non-zero, even values close to zero ### avg_his[avg_his[] == 0] <- 0.01
+        avg_fut[avg_fut[] <= 0.01] <- 0.01 # if future has exactly zero make it non-zero, even values close to zero
         
         #calculate anomaly in fraction
         anom <- (avg_fut - avg_his)/avg_his
@@ -158,53 +167,64 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
         thr <- as.numeric(terra::global(x = anom, fun = stats::quantile, probs = 0.98, na.rm = T))
         anom[anom >= thr] <- thr
       }
-      names(anom) <- "mean"
+      names(anom) <- 'mean'
       
       #as data.frame
-      crds <- anom %>% terra::as.data.frame(xy = T)
+      if (gcm_name %in% c('CMIP6_EC-Earth3','CMIP6_MPI-ESM1-2-HR')) {
+        crds <- terra::spatSample(x = anom, size = ceiling(nrow(crds) * 0.3), method = 'regular', xy = T)
+      } else {
+        crds <- terra::as.data.frame(anom, xy = T)
+      }
       
       #fit tps interpolation model
-      cat("fitting thin plate spline\n")
-      if (!file.exists(paste0(anom_dname, "/tps_mth_",i,".RData"))) {
-        tps  <- fields::Tps(x = crds[,c('x','y')], Y = crds[,'mean'])
-        save(tps, file=paste0(anom_dname, "/tps_mth_",i,".RData"))
+      cat('fitting thin plate spline\n')
+      if (!file.exists(paste0(anom_dname,'/tps_mth_',.x,'.RData'))) {
+        library(fields)
+        tps <- fields::Tps(x = crds[,c('x','y')], Y = crds[,'mean'])
+        save(tps, file=paste0(anom_dname,'/tps_mth_',.x,'.RData'))
       } else {
-        load(paste0(anom_dname, "/tps_mth_",i,".RData"))
+        load(paste0(anom_dname,'/tps_mth_',.x,'.RData'))
       }
       
       #interpolate
-      cat("interpolating onto the reference raster\n")
-      if (!file.exists(paste0(anom_dname, "/raster_mth_",i,".tif"))) {
-        intp <- terra::interpolate(object=terra::rast(ref), model=tps, fun=predict)
-        intp <- intp %>%
-          terra::mask(mask = ref)
-        names(intp) <- paste0(sprintf("%02.0f",i))
-        terra::writeRaster(intp, paste0(anom_dname, "/raster_mth_",i,".tif"))
+      cat('interpolating onto the reference raster\n')
+      if (!file.exists(paste0(anom_dname,'/raster_mth_',.x,'.tif'))) {
+        # intp <- terra::interpolate(object = ref_u, model = tps)
+        xy <- terra::as.data.frame(ref_u, xy = T)[,1:2]
+        intp_vls <- fields::predict.Krig(tps, xy)
+        xyz <- cbind(xy, base::as.data.frame(intp_vls))
+        intp <- terra::rast(xyz)
+        terra::crs(intp) <- terra::crs(ref_u)
+        names(intp) <- paste0(sprintf('%02.0f',.x))
+        terra::writeRaster(intp, paste0(anom_dname,'/raster_mth_',.x,'.tif'), overwrite = T)
       } else {
-        intp <- terra::rast(paste0(anom_dname, "/raster_mth_",i,".tif"))
+        intp <- terra::rast(paste0(anom_dname,'/raster_mth_',.x,'.tif'))
       }
       
       #clean-up
-      rm(list=c("tps", "anom", "avg_fut", "avg_his", "crds"))
-      gc(verbose=FALSE, full=TRUE, reset=TRUE)
+      rm(list=c('tps','anom','avg_fut','avg_his','crds'))
+      gc(verbose = F, full = T, reset = T)
       
       #append
-      r_anom <- c(r_anom, intp)
-    }
+      r_anom <- terra::wrap(intp)
+      return(r_anom)
+      
+    }, .progress = T)
+    plan(sequential)
+    r_anom <- r_anom |> purrr::map(terra::unwrap) |> terra::rast()
     
     #create raster, write
-    r_anom <- terra::rast(r_anom)
     terra::writeRaster(r_anom, anom_fname)
     
     #final cleanup
     rm(intp)
-    gc(verbose=FALSE, full=TRUE, reset=TRUE)
+    gc(verbose = F, full = T, reset = T)
   } else {
     r_anom <- terra::rast(anom_fname)
   }
   
   #delete temporary directory
-  if (file.exists(anom_dname)) {system(paste0("rm -rf ", anom_dname))}
+  if (file.exists(anom_dname)) {system(paste0('rm -rf ',anom_dname))}
   
   #return object
   return(r_anom)
