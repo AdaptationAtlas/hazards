@@ -3,9 +3,8 @@
 #HAE, Dec 2024
 
 #load libraries
-library(tidyverse)
-library(terra)
-library(fields)
+if(!require(pacman)){install.packages('pacman');library(pacman)} else library(pacman)
+pacman::p_load(tidyverse, terra, fields, furrr, future)
 
 #options
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
@@ -171,6 +170,7 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
       
       #as data.frame
       if (gcm_name %in% c('CMIP6_EC-Earth3','CMIP6_MPI-ESM1-2-HR')) {
+        crds <- terra::as.data.frame(anom, xy = T)
         crds <- terra::spatSample(x = anom, size = ceiling(nrow(crds) * 0.3), method = 'regular', xy = T)
       } else {
         crds <- terra::as.data.frame(anom, xy = T)
@@ -292,13 +292,13 @@ for (rcp in c("ssp126","ssp245","ssp370", "ssp585")) {
       r_ref[r_ref[] < -9990] <- NA
       
       #interpolate anomalies
-      rcp_anom <- intp_anomalies(his_clm=his_clm, 
-                                 rcp_clm=rcp_clm, 
-                                 anom_dir=anom_dir, 
+      rcp_anom <- intp_anomalies(his_clm=his_clm,
+                                 rcp_clm=rcp_clm,
+                                 anom_dir=anom_dir,
                                  ref=r_ref,
-                                 gcm_name=gcm_list[gcm_i], 
-                                 rcp=rcp, 
-                                 varname=varname, 
+                                 gcm_name=gcm_list[gcm_i],
+                                 rcp=rcp,
+                                 varname=varname,
                                  period=rcp_period)
       
       #clean-up
