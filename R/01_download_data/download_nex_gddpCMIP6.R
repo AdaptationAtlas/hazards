@@ -5,7 +5,7 @@
 library(pacman)
 pacman::p_load(devtools)
 # devtools::install_github("hllauca/RClimChange")
-pacman::p_load(RClimChange,furrr,future)
+pacman::p_load(RClimChange,furrr,future,dplyr)
 
 #define working directory
 wd <- '~/common_data/nex-gddp-cmip6'
@@ -18,6 +18,7 @@ prds <- c('2021_2040','2041_2060','2061_2080','2081_2100')
 stp <- expand.grid(var = vars, gcm = gcms, ssp = ssps, period = prds,
                    stringsAsFactors = F) |>
   base::as.data.frame()
+stp <- stp |> dplyr::arrange(var, gcm, ssp, period)
 rm(vars, gcms, ssps, prds)
 
 # # Download daily precipitation flux from BCC-CSM2-MR model
@@ -49,7 +50,7 @@ rm(vars, gcms, ssps, prds)
 #   
 # }
 
-plan(multisession, workers = 30)
+plan(multisession, workers = 20)
 furrr::future_map(.x = 1:nrow(stp), .f = function(.x){
   
   #initial and ending years
@@ -62,7 +63,7 @@ furrr::future_map(.x = 1:nrow(stp), .f = function(.x){
                             variable = stp$var[.x],
                             years    = ini:end,
                             version  = 'v1.1',
-                            roi      = c(-26,58,-47,38), # xmin,xmax,ymin,ymax
+                            roi      = NULL, # c(-26,58,-47,38), # xmin,xmax,ymin,ymax
                             method   = 'curl')
   #clean-up
   gc(verbose = F, full = T, reset = T)
