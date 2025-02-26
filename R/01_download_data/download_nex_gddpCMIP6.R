@@ -8,7 +8,7 @@ pacman::p_load(devtools)
 pacman::p_load(RClimChange,furrr,future,dplyr)
 
 #define working directory
-wd <- '~/common_data/nex-gddp-cmip6'
+wd <- '~/common_data/nex-gddp-cmip6'; dir.create(wd, F, T)
 
 #setup table
 vars <- c('pr','tasmax','tasmin')
@@ -49,6 +49,26 @@ rm(vars, gcms, ssps, prds)
 #                             method   = 'curl')
 #   
 # }
+
+1:nrow(stp) |>
+  purrr::map(.f = function(.x){
+  
+  #initial and ending years
+  ini <- strsplit(stp$period[.x], split = '_')[[1]][1] |> as.numeric()
+  end <- strsplit(stp$period[.x], split = '_')[[1]][2] |> as.numeric()
+  # download
+  RClimChange::nex_download(location = wd,
+                            model    = stp$gcm[.x],
+                            scenario = stp$ssp[.x],
+                            variable = stp$var[.x],
+                            years    = ini:end,
+                            version  = 'v1.1',
+                            roi      = NULL, # c(-26,58,-47,38), # xmin,xmax,ymin,ymax
+                            method   = 'curl')
+  #clean-up
+  gc(verbose = F, full = T, reset = T)
+  cat(paste0(stp$var[.x],'/',stp$gcm[.x],'/',stp$ssp[.x],'/',stp$period[.x],' ready.\n'))
+})
 
 plan(multisession, workers = 20)
 furrr::future_map(.x = 1:nrow(stp), .f = function(.x){

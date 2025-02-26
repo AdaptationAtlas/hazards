@@ -1,6 +1,10 @@
-# Download global CHIRPS
-# By: H. Achicanoy
-# December, 2022
+## ------------------------------------------ ##
+## Download daily global CHIRPS
+## By: H. Achicanoy
+## By: Harold Achicanoy
+## WUR & ABC
+## Feb 2025
+## ------------------------------------------ ##
 
 # R options
 g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
@@ -9,12 +13,12 @@ suppressMessages(library(pacman))
 suppressMessages(pacman::p_load(tidyverse,terra,lubridate,R.utils))
 
 # Time frame
-ini <- as.Date('1981-01-01')
-end <- as.Date('2022-12-31')
+ini <- as.Date('2024-10-01')
+end <- as.Date('2025-01-31')
 dts <- seq(from = ini, to = end, by = 'day'); rm(ini, end)
 
 # Output directory
-Out  <- '/home/jovyan/common_data/chirps_wrld'
+Out  <- '//catalogue/WFP_ClimateRiskPr1/1.Data/Chirps'
 dir.create(Out,F,T)
 
 # Main function
@@ -53,4 +57,4 @@ getChirps <- function(date = dts[1]){
 }
 
 # Loop through the dates
-dts %>% purrr::map(.f = getChirps)
+dts |> purrr::map(.f = getChirps)
