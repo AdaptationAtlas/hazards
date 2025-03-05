@@ -26,7 +26,7 @@ root <- 'https://nex-gddp-cmip6.s3.us-west-2.amazonaws.com/NEX-GDDP-CMIP6'
 #filters to apply
 gcms <- c('ACCESS-ESM1-5','MPI-ESM1-2-HR','EC-Earth3','INM-CM5-0','MRI-ESM2-0')
 ssps <- c('ssp126','ssp245','ssp370','ssp585')
-vars <- c('pr','tasmax','tasmin')
+vars <- c('hurs', 'rsds') # c('pr','tasmax','tasmin')
 yrs <- 2021:2100
 
 #setup table
@@ -35,7 +35,7 @@ stp <- base::expand.grid(gcm = gcms, ssp = ssps, var = vars, yr = yrs, stringsAs
 #available files to download
 wd <- '/home/jovyan/common_data/nex-gddp-cmip6'
 dir.create(wd, F, T)
-if(!file.exists(file.path(wd,'cmip6_files_to_download.csv'))) {
+if(!file.exists(file.path(wd,'cmip6_add_files_to_download.csv'))) {
   plan(multisession, workers = 30)
   available_files <-  1:nrow(stp) |>
     furrr::future_map(.f = function(i) {
@@ -70,10 +70,10 @@ if(!file.exists(file.path(wd,'cmip6_files_to_download.csv'))) {
   gc(F,T,T)
   
   stp <- cbind(stp, available_files); rm(available_files)
-  utils::write.csv(x = stp, file = file.path(wd,'cmip6_files_to_download.csv'), row.names = F)
+  utils::write.csv(x = stp, file = file.path(wd,'cmip6_add_files_to_download.csv'), row.names = F)
   
 } else {
-  stp <- utils::read.csv(file.path(wd,'cmip6_files_to_download.csv'))
+  stp <- utils::read.csv(file.path(wd,'cmip6_add_files_to_download.csv'))
 }
 
 #download files
