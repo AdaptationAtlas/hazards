@@ -14,6 +14,9 @@ root <- '/home/jovyan/common_data'
 # Solar radiation: rsds * 86400 / 1000000
 # rotate
 
+# Set up parallel processing
+future::plan(future::multisession, workers = 6) # parallel::detectCores() - 1
+
 get_daily_data <- function (vr, ssp, gcm) {
   
   # Input directory
@@ -25,33 +28,45 @@ get_daily_data <- function (vr, ssp, gcm) {
   # Files in input directory
   fls <- list.files(path = indir, pattern = '.nc$', full.names = T)
   
-  1:length(fls) |>
-    purrr::map(.f = function(i) {
+  # Process files in parallel
+  furrr::future_map(.x = fls, .f = function(fl) {
+    
+    # Read annual raster
+    r <- terra::rast(fl)
+    # Get daily dates
+    dts <- as.character(terra::time(r))
+    
+    # Create output filenames
+    out_files <- file.path(outdir, paste0(vr,'_',dts,'.tif'))
+    
+    # Check which files need to be processed
+    to_process <- !file.exists(out_files)
+    
+    if (any(to_process)) {
+      # Wrap raster for parallel processing
+      r_wrapped <- terra::wrap(r)
       
-      # Read annual raster
-      r <- terra::rast(fls[i])
-      # Get daily dates
-      dts <- as.character(terra::time(r))
-      
-      if (!all(file.exists(paste0(outdir,'/',vr,'_',dts,'.tif')))) {
-        # Apply unit transformations
-        if (vr == 'pr') { # to mm/day
-          r <- r * 86400
-        } else {
-          if (vr %in% c('tasmax','tasmin')) { # to Celsius degrees
-            r <- r - 273.15
-          } else {
-            if (vr == 'rsds') { # to MJ/m^2/day (megajoules per square meter per day)
-              r <- r * 86400 / 1000000
-            }
-          }
-        }
-        # Rotate rasters
-        r <- terra::rotate(r)
-        terra::writeRaster(r, filename = paste0(outdir,'/',vr,'_',dts,'.tif'))
+      # Apply unit transformations
+      r_unwrapped <- terra::unwrap(r_wrapped)
+      if (vr == 'pr') {
+        r_unwrapped <- r_unwrapped * 86400
+      } else if (vr %in% c('tasmax','tasmin')) {
+        r_unwrapped <- r_unwrapped - 273.15
+      } else if (vr == 'rsds') {
+        r_unwrapped <- r_unwrapped * 86400 / 1000000
       }
       
-    })
+      # Rotate rasters
+      r_unwrapped <- terra::rotate(r_unwrapped)
+      
+      # Write only the files that don't exist
+      terra::writeRaster(r_unwrapped[[to_process]], 
+                        filename = out_files[to_process],
+                        gdal=c("COMPRESS=LZW", "TFW=YES"),
+                        overwrite=TRUE)
+    }
+    
+  }, .progress = TRUE)
   
   return(cat('Done.\n'))
   
@@ -61,9 +76,8 @@ vrs <- c('pr','tasmax','tasmin','rsds','hurs') # Weather variables
 ssps <- c('ssp126','ssp245','ssp370','ssp585') # SSP scenarios
 gcms <- c('ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0') # GCM models
 
-stp <- base::expand.grid(vr = vrs, ssp = ssps, gcm = gcms, stringsAsFactors = F) |>
-  base::as.data.frame() |>
-  dplyr::arrange(vr,ssp,gcm); rm(vrs, ssps, gcms)
+stp <- base::expand.grid(gcm = gcms, ssp = ssps, vr = vrs, stringsAsFactors = F) |>
+  base::as.data.frame(); rm(vrs, ssps, gcms)
 
 1:nrow(stp) |>
   purrr::map(.f = function(j) {
