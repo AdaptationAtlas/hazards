@@ -14,9 +14,6 @@ root <- '/home/jovyan/common_data'
 # Solar radiation: rsds * 86400 / 1000000
 # rotate
 
-# Set up parallel processing
-future::plan(future::multisession, workers = 6) # parallel::detectCores() - 1
-
 get_daily_data <- function (vr, ssp, gcm) {
   
   # Input directory
@@ -29,6 +26,8 @@ get_daily_data <- function (vr, ssp, gcm) {
   fls <- list.files(path = indir, pattern = '.nc$', full.names = T)
   
   # Process files in parallel
+  # Set up parallel processing
+  future::plan(future::multisession, workers = 6) # parallel::detectCores() - 1
   furrr::future_map(.x = fls, .f = function(fl) {
     
     # Read annual raster
@@ -60,10 +59,12 @@ get_daily_data <- function (vr, ssp, gcm) {
       r_unwrapped <- terra::rotate(r_unwrapped)
       
       # Write only the files that don't exist
-      terra::writeRaster(x = r_unwrapped[[to_process]], filename = out_files[to_process], overwrite=T)
+      terra::writeRaster(x = r_unwrapped[[to_process]], filename = out_files[to_process], overwrite = T)
     }
     
-  }, .progress = TRUE)
+  }, .progress = T)
+  future::plan(future::sequential)
+  gc(F, T, T)
   
   return(cat('Done.\n'))
   
