@@ -60,10 +60,7 @@ get_daily_data <- function (vr, ssp, gcm) {
       r_unwrapped <- terra::rotate(r_unwrapped)
       
       # Write only the files that don't exist
-      terra::writeRaster(r_unwrapped[[to_process]], 
-                        filename = out_files[to_process],
-                        gdal=c("COMPRESS=LZW", "TFW=YES"),
-                        overwrite=TRUE)
+      terra::writeRaster(x = r_unwrapped[[to_process]], filename = out_files[to_process], overwrite=T)
     }
     
   }, .progress = TRUE)
