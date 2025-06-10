@@ -54,7 +54,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd, mn){
       fut_pth <- paste0(root,'/ecmwf_agera5_cmip6_africa/solar_radiation_flux_',gcm,'_',ssp,'_',prd)
       dir.create(fut_pth, F, T)
     }
-    if(length(list.files(fut_pth)) < 7300){
+    #if(length(list.files(fut_pth)) < 7300){
       # File structure
       if (var == "pr") {
         his_str <- paste0('chirps-v2.0.',gsub(pattern='-', replacement='.', x=mpg$Baseline, fixed=T),'.tif')
@@ -89,7 +89,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd, mn){
             })
           plan(sequential); gc(reset = T)
         })
-    }
+    #}
   }
   if(var %in% c('tasmax','tasmin','hurs')){
     # Paths
