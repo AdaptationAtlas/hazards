@@ -178,17 +178,17 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
       
       #fit tps interpolation model
       cat('fitting thin plate spline\n')
-      if (!file.exists(paste0(anom_dname,'/tps_mth_',.x,'.RData'))) {
+      if (!file.exists(paste0(anom_dname,'/tps_mth_',.x,'_fixed.RData'))) {
         library(fields)
         tps <- fields::Tps(x = crds[,c('x','y')], Y = crds[,'mean'])
-        save(tps, file=paste0(anom_dname,'/tps_mth_',.x,'.RData'))
+        save(tps, file=paste0(anom_dname,'/tps_mth_',.x,'_fixed.RData'))
       } else {
-        load(paste0(anom_dname,'/tps_mth_',.x,'.RData'))
+        load(paste0(anom_dname,'/tps_mth_',.x,'_fixed.RData'))
       }
       
       #interpolate
       cat('interpolating onto the reference raster\n')
-      if (!file.exists(paste0(anom_dname,'/raster_mth_',.x,'.tif'))) {
+      if (!file.exists(paste0(anom_dname,'/raster_mth_',.x,'_fixed.tif'))) {
         # intp <- terra::interpolate(object = ref_u, model = tps)
         xy <- terra::as.data.frame(ref_u, xy = T)[,1:2]
         intp_vls <- fields::predict.Krig(tps, xy)
@@ -196,9 +196,9 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
         intp <- terra::rast(xyz)
         terra::crs(intp) <- terra::crs(ref_u)
         names(intp) <- paste0(sprintf('%02.0f',.x))
-        terra::writeRaster(intp, paste0(anom_dname,'/raster_mth_',.x,'.tif'), overwrite = T)
+        terra::writeRaster(intp, paste0(anom_dname,'/raster_mth_',.x,'_fixed.tif'), overwrite = T)
       } else {
-        intp <- terra::rast(paste0(anom_dname,'/raster_mth_',.x,'.tif'))
+        intp <- terra::rast(paste0(anom_dname,'/raster_mth_',.x,'_fixed.tif'))
       }
       
       #clean-up
