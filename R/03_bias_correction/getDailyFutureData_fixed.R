@@ -3,7 +3,6 @@
 ## December, 2022
 
 # R options
-g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(library(pacman))
 suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate,furrr))
@@ -43,6 +42,7 @@ get_daily_future_data <- function(gcm, ssp, var, prd, mn){
   mpg$year  <- lubridate::year(mpg$Baseline)
   mpg$year_fut <- lubridate::year(mpg$Future)
   mpg$month <- lubridate::month(mpg$Baseline)
+  mpg <- mpg |> dplyr::filter(month == as.numeric(mn))
   
   if(var %in% c('pr','rsds')){
     # Paths
@@ -75,18 +75,17 @@ get_daily_future_data <- function(gcm, ssp, var, prd, mn){
           1:length(his_daily) %>%
             furrr::future_map(.f = function(k){
               outfile <- paste0(fut_pth,'/',fut_daily[k])
-              if(!file.exists(outfile)){
-                r <- terra::rast(paste0(his_pth,'/',his_daily[k]))
-                if (var == "pr") {
-                  r <- r %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
-                  r[r == -9999] <- NA
-                } else if (var == "rsds") {
-                  r <- r %>% terra::crop(terra::ext(ref)) %>% terra::resample(., ref) %>% terra::mask(ref)
-                  r <- r * 1e-6
-                }
-                r <- r * (1 + delta)
-                terra::writeRaster(r, outfile)
+              r <- terra::rast(paste0(his_pth,'/',his_daily[k]))
+              if (var == "pr") {
+                r <- r %>% terra::crop(terra::ext(ref)) %>% terra::mask(ref)
+                r <- terra::classify(r, rcl = cbind(-Inf, -9990, NA))
+              } else if (var == "rsds") {
+                r <- r %>% terra::crop(terra::ext(ref)) %>% terra::resample(., ref) %>% terra::mask(ref)
+                r <- r * 1e-6
               }
+              r <- r * (1 + delta)
+              r <- terra::classify(r, cbind(-Inf, 0, 0))
+              terra::writeRaster(r, outfile, overwrite = T)
             })
           plan(sequential); gc(reset = T)
         })
