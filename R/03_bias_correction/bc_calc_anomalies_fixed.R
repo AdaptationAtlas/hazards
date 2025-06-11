@@ -156,8 +156,8 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
         anom <- avg_fut - avg_his
       } else {
         # if precipitation is below or very close to zero make it 0.01
-        avg_his[avg_his[] <= 1] <- 1 # if historical has exactly zero make it non-zero, even values close to zero ### avg_his[avg_his[] == 0] <- 0.01
-        avg_fut[avg_fut[] <= 1] <- 1 # if future has exactly zero make it non-zero, even values close to zero
+        avg_his[avg_his[] <= 2] <- 2 # if historical has exactly zero make it non-zero, even values close to zero ### avg_his[avg_his[] == 0] <- 0.01
+        avg_fut[avg_fut[] <= 2] <- 2 # if future has exactly zero make it non-zero, even values close to zero
         
         #calculate anomaly in fraction
         anom <- (avg_fut - avg_his)/avg_his
