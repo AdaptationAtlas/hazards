@@ -155,16 +155,20 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
       if (varname %in% c('tasmax','tasmin','tas','hurs')) {
         anom <- avg_fut - avg_his
       } else {
-        # if precipitation is below or very close to zero make it 0.01
-        avg_his <- terra::classify(avg_his, cbind(-Inf, 1, 1)) # if historical has exactly zero make it non-zero, even values close to zero ### avg_his[avg_his[] == 0] <- 0.01
-        avg_fut <- terra::classify(avg_fut, cbind(-Inf, 1, 1)) # if future has exactly zero make it non-zero, even values close to zero
+        # if precipitation is below or very close to zero make it 1 mm/month
+        avg_his <- terra::classify(avg_his, cbind(-Inf, 1, 1))
+        avg_fut <- terra::classify(avg_fut, cbind(-Inf, 1, 1))
         
         #calculate anomaly in fraction
         anom <- (avg_fut - avg_his)/avg_his
         
         # Truncate the top 2% of anomaly values
         thr <- as.numeric(terra::global(x = anom, fun = stats::quantile, probs = 0.98, na.rm = T))
-        anom[anom >= thr] <- thr
+        anom <- terra::classify(anom, cbind(thr, Inf, thr))
+        
+        # Clamp it to -150 to 150%
+        anom <- terra::classify(anom, cbind(-Inf, -1.5, -1.5))
+        anom <- terra::classify(anom, cbind(1.5, Inf, 1.5))
       }
       names(anom) <- 'mean'
       
@@ -196,6 +200,10 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
         intp <- terra::rast(xyz)
         terra::crs(intp) <- terra::crs(ref_u)
         names(intp) <- paste0(sprintf('%02.0f',.x))
+        if (varname %in% 'pr') {
+          intp <- terra::classify(intp, cbind(-Inf, -1.5, -1.5))
+          intp <- terra::classify(intp, cbind(1.5, Inf, 1.5))
+        }
         terra::writeRaster(intp, paste0(anom_dname,'/raster_mth_',.x,'_fixed.tif'), overwrite = T)
       } else {
         intp <- terra::rast(paste0(anom_dname,'/raster_mth_',.x,'_fixed.tif'))
