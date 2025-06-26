@@ -242,7 +242,7 @@ intp_anomalies <- function(his_clm, rcp_clm, anom_dir, ref, gcm_name, rcp, varna
 ####
 #parameters
 ####
-gcm_i <- 3
+gcm_i <- grep(gcm, gcm_list)
 varname <- 'pr'
 rcp <- ssp
 futperiod <- dplyr::case_when(
