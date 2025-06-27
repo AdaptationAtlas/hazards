@@ -45,20 +45,20 @@ ssps <- c('ssp126','ssp245','ssp370','ssp585')
 gcms <- c('ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0')
 prds <- c('2021_2040','2041_2060','2061_2080','2081_2100')
 mns  <- sprintf('%02.0f',1:12)
-
-stp <- expand.grid(ssp = ssps, gcm = gcms, prd = prds, mn = mns, stringsAsFactors = F) |>
+stp_tbl <- expand.grid(ssp = ssps, gcm = gcms, prd = prds, mn = mns, stringsAsFactors = F) |>
   base::as.data.frame() |>
   dplyr::arrange(gcm, ssp, prd)
 
-for (i in 1:nrow(stp)) {
+for (i in 1:nrow(stp_tbl)) {
   
   lgs_file <- '~/common_data/affected_geographies/pr_files_fixed.csv'
   if (!file.exists(lgs_file)) {
     
-    ssp <- stp$ssp[i]
-    gcm <- stp$gcm[i]
-    prd <- stp$prd[i]
-    mn <- stp$mn[i]
+    ssp <- stp_tbl$ssp[i]
+    gcm <- stp_tbl$gcm[i]
+    prd <- stp_tbl$prd[i]
+    mn  <- stp_tbl$mn[i]
+    var <- 'pr'
     
     cat(paste0('>>> Fix anomalies for: ',ssp,', ',gcm,', and, ',prd,'\n'))
     # Load anomalies interpolation function (modified)
@@ -70,16 +70,17 @@ for (i in 1:nrow(stp)) {
     # Load the monthly total precipitation function (modified)
     source('https://raw.githubusercontent.com/AdaptationAtlas/hazards/refs/heads/main/R/03_bias_correction/calc_PTOT_fixed.R'); gc()
     
-    logs <- stp[i,]
+    logs <- stp_tbl[i,]
     utils::write.csv(logs, file = lgs_file, row.names = F)
   } else {
     logs <- utils::read.csv(lgs_file)
     
     i <- (nrow(logs) + 1)
-    ssp <- stp$ssp[i]
-    gcm <- stp$gcm[i]
-    prd <- stp$prd[i]
-    mn <- stp$mn[i]
+    ssp <- stp_tbl$ssp[i]
+    gcm <- stp_tbl$gcm[i]
+    prd <- stp_tbl$prd[i]
+    mn  <- stp_tbl$mn[i]
+    var <- 'pr'
     
     cat(paste0('>>> Fix anomalies for: ',ssp,', ',gcm,', and, ',prd,'\n'))
     # Load anomalies interpolation function (modified)
@@ -92,7 +93,7 @@ for (i in 1:nrow(stp)) {
     source('https://raw.githubusercontent.com/AdaptationAtlas/hazards/refs/heads/main/R/03_bias_correction/calc_PTOT_fixed.R'); gc()
     
     logs <- rbind(logs,
-                  stp[i,])
+                  stp_tbl[i,])
     utils::write.csv(logs, file = lgs_file, row.names = F)
   }
   cat('\n\n')
