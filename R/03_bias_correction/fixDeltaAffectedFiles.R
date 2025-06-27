@@ -1,3 +1,6 @@
+# ---------------------------------------------------------- #
+# Extreme cases ----
+# ---------------------------------------------------------- #
 # Define parameters
 stp <- data.frame(var = 'pr',
                   ssp = c('ssp245',rep('ssp585',5),'ssp370'),
@@ -5,6 +8,9 @@ stp <- data.frame(var = 'pr',
                   prd = c('2021_2040',rep('2081_2100',3),rep('2061_2080',2),'2081_2100'),
                   mn  = c('02','08','09','10','08','09','09'))
 
+# ---------------------------------------------------------- #
+# Individual runs ----
+# ---------------------------------------------------------- #
 # var = 'pr'; ssp = 'ssp245'; gcm = 'EC-Earth3'; prd = '2021_2040'; mn = '02'
 # var = 'pr'; ssp = 'ssp585'; gcm = 'EC-Earth3'; prd = '2081_2100'; mn = '08'
 # var = 'pr'; ssp = 'ssp585'; gcm = 'EC-Earth3'; prd = '2081_2100'; mn = '09'
@@ -23,7 +29,10 @@ source('https://raw.githubusercontent.com/AdaptationAtlas/hazards/refs/heads/mai
 # Load the monthly total precipitation function (modified)
 source('https://raw.githubusercontent.com/AdaptationAtlas/hazards/refs/heads/main/R/03_bias_correction/calc_PTOT_fixed.R'); gc()
 
-px_cnt <- utils::read.csv('C:/Users/haachicanoy/Downloads/pixel_counts_thr_15.csv')
+# ---------------------------------------------------------- #
+# Affected precipitation files ----
+# ---------------------------------------------------------- #
+px_cnt <- utils::read.csv('~/common_data/affected_geographies/pixel_counts_thr_15.csv')
 px_cnt$month <- base::sprintf('%02.0f', px_cnt$month)
 px_cnt$id <- paste0(px_cnt$month,'--',px_cnt$folder)
 px_tfx <- px_cnt[px_cnt$pixel_value != 0,]
@@ -31,6 +40,9 @@ px_tfx <- px_tfx |> dplyr::arrange(-count)
 rownames(px_tfx) <- 1:nrow(px_tfx)
 px_tfx[,c('month','ssp','gcm','prd','folder')] |> unique() |> dim()
 
+# ---------------------------------------------------------- #
+# Affected delta files ----
+# ---------------------------------------------------------- #
 dfm <- utils::read.csv('~/common_data/affected_geographies/pr_deltas_summaries.csv')
 cond1 <- which(dfm$min < -2)
 cond2 <- which(dfm$max > 2)
@@ -40,7 +52,10 @@ mtch <- sort(unique(union(cond1, cond2))); rm(cond1, cond2)
 dfm_ok <- dfm[setdiff(1:nrow(dfm),mtch),]
 sort(table(dfm_ok$file), decreasing = T)
 
-# Code to fix all precipitation files
+# ---------------------------------------------------------- #
+# Code to fix all precipitation files (running now) ----
+# ---------------------------------------------------------- #
+
 ssps <- c('ssp126','ssp245','ssp370','ssp585')
 gcms <- c('ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0')
 prds <- c('2021_2040','2041_2060','2061_2080','2081_2100')
