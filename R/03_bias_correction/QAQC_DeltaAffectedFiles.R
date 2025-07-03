@@ -6,18 +6,24 @@
 # R options
 options(warn = -1, scipen = 999)
 suppressMessages(library(pacman))
-pacman::p_load(terra, tidyverse, FactoMineR)
+pacman::p_load(terra, tidyverse, FactoMineR, arrow)
 # Set working directory
 setwd('~')
 
 ## Delta's quality control ----
 # Get delta statistics
-dlt_pth <- '~/common_data/esfg_cmip6/intermediate/interpolated_mthly_anomaly'
-system(paste0('~/common_data/cloud-convert run-qaqc ',dlt_pth,' --quantiles --pct-check 100'))
-# Read delta statistics
-delta_sts <- utils::read.csv(file.path(dlt_pth,'qaqc.csv'))
-delta_sts <- delta_sts[grep('_fixed',delta_sts$file),]
-delta_sts <- delta_sts[-grep('_thr',delta_sts$file),]
+dlt_sts_file <- '~/common_data/affected_geographies/corrected_delta_stats.parquet'
+if (!file.exists(dlt_sts_file)) {
+  dlt_pth <- '~/common_data/esfg_cmip6/intermediate/interpolated_mthly_anomaly'
+  system(paste0('~/common_data/cloud-convert run-qaqc ',dlt_pth,' --quantiles --pct-check 100'))
+  # Read delta statistics
+  delta_sts <- utils::read.csv(file.path(dlt_pth,'qaqc.csv'))
+  delta_sts <- delta_sts[grep('_fixed',delta_sts$file),]
+  delta_sts <- delta_sts[-grep('_thr',delta_sts$file),]
+  arrow::write_parquet(delta_sts, dlt_sts_file)
+} else {
+  delta_sts <- arrow::read_parquet(dlt_sts_file) |> base::as.data.frame()
+}; rm(dlt_sts_file)
 # Check minimum and maximum values
 delta_sts |>
   ggplot2::ggplot(aes(x = min, y = max)) +
@@ -37,28 +43,34 @@ stp_tbl <- expand.grid(ssp = ssps, gcm = gcms, prd = prds, stringsAsFactors = F)
 rm(ssps, gcms, prds)
 stp_tbl$folder <- paste0(stp_tbl$ssp,'_',stp_tbl$gcm,'_',stp_tbl$prd)
 # Get monthly statistics
-root <- '~/common_data'
-app_call <- '~/common_data/cloud-convert run-qaqc '
-app_args <- ' --quantiles --pct-check 100'
-for (i in 1:nrow(stp_tbl)) {
-  
-  cat('Processing', stp_tbl$folder[i],'\n')
-  system(command =
-           paste0(app_call,
-                  file.path(root,'atlas_hazards/cmip6/indices',stp_tbl$folder[i],'PTOT'),
-                  app_args)
-  )
-  
-}; rm(i)
-# Read monthly statistics
-mthly_sts <- 1:nrow(stp_tbl) |>
-  purrr::map(.f = function(i) {
+mnt_sts_file <- '~/common_data/affected_geographies/corrected_monthly_stats.parquet'
+if (!file.exists(mnt_sts_file)) {
+  root <- '~/common_data'
+  app_call <- '~/common_data/cloud-convert run-qaqc '
+  app_args <- ' --quantiles --pct-check 100'
+  for (i in 1:nrow(stp_tbl)) {
     
-    sts <- utils::read.csv(file.path(root,'atlas_hazards/cmip6/indices',stp_tbl$folder[i],'PTOT/qaqc.csv'))
-    return(sts)
+    cat('Processing', stp_tbl$folder[i],'\n')
+    system(command =
+             paste0(app_call,
+                    file.path(root,'atlas_hazards/cmip6/indices',stp_tbl$folder[i],'PTOT'),
+                    app_args)
+    )
     
-  }) |> dplyr::bind_rows()
-mthly_sts <- mthly_sts[grep('PTOT-[0-9][0-9][0-9][0-9]-[0-9][0-9].tif', mthly_sts$file),]
+  }; rm(i)
+  # Read monthly statistics
+  mthly_sts <- 1:nrow(stp_tbl) |>
+    purrr::map(.f = function(i) {
+      
+      sts <- utils::read.csv(file.path(root,'atlas_hazards/cmip6/indices',stp_tbl$folder[i],'PTOT/qaqc.csv'))
+      return(sts)
+      
+    }) |> dplyr::bind_rows()
+  mthly_sts <- mthly_sts[grep('PTOT-[0-9][0-9][0-9][0-9]-[0-9][0-9].tif', mthly_sts$file),]
+  arrow::write_parquet(mthly_sts, mnt_sts_file)
+} else {
+  mthly_sts <- arrow::read_parquet(mnt_sts_file) |> base::as.data.frame()
+}; rm(mnt_sts_file)
 # Check median and maximum values
 mthly_sts |>
   ggplot2::ggplot(aes(x = median, y = max)) +
@@ -69,26 +81,32 @@ mthly.pca.res <- mthly_sts |> dplyr::select(mean, min, max, stdev, q1, median, q
 
 ## Daily's quality control ----
 # Get daily statistics
-stp_tbl$daily_folder <- paste0('Prec_',stp_tbl$gcm,'_',stp_tbl$ssp,'_',stp_tbl$prd)
-for (i in 1:nrow(stp_tbl)) {
-  
-  cat('Processing', stp_tbl$daily_folder[i],'\n')
-  system(command =
-           paste0(app_call,
-                  file.path(root,'chirps_cmip6_africa',stp_tbl$daily_folder[i]),
-                  app_args)
-  )
-  
-}; rm(i)
-# Read daily statistics
-daily_sts <- 1:nrow(stp_tbl) |>
-  purrr::map(.f = function(i) {
+dly_sts_file <- '~/common_data/affected_geographies/corrected_daily_stats.parquet'
+if (!file.exists(dly_sts_file)) {
+  stp_tbl$daily_folder <- paste0('Prec_',stp_tbl$gcm,'_',stp_tbl$ssp,'_',stp_tbl$prd)
+  for (i in 1:nrow(stp_tbl)) {
     
-    sts <- utils::read.csv(file.path(root,'chirps_cmip6_africa',stp_tbl$daily_folder[i],'qaqc.csv'))
-    return(sts)
+    cat('Processing', stp_tbl$daily_folder[i],'\n')
+    system(command =
+             paste0(app_call,
+                    file.path(root,'chirps_cmip6_africa',stp_tbl$daily_folder[i]),
+                    app_args)
+    )
     
-  }) |> dplyr::bind_rows()
-daily_sts <- daily_sts[grep('chirps-v2.0*.*.tif', daily_sts$file),]
+  }; rm(i)
+  # Read daily statistics
+  daily_sts <- 1:nrow(stp_tbl) |>
+    purrr::map(.f = function(i) {
+      
+      sts <- utils::read.csv(file.path(root,'chirps_cmip6_africa',stp_tbl$daily_folder[i],'qaqc.csv'))
+      return(sts)
+      
+    }) |> dplyr::bind_rows()
+  daily_sts <- daily_sts[grep('chirps-v2.0*.*.tif', daily_sts$file),]
+  arrow::write_parquet(daily_sts, dly_sts_file)
+} else {
+  daily_sts <- arrow::read_parquet(dly_sts_file) |> base::as.data.frame()
+}; rm(dly_sts_file)
 # Check Q3 and maximum values
 daily_sts |>
   ggplot2::ggplot(aes(x = q3, y = max)) +
