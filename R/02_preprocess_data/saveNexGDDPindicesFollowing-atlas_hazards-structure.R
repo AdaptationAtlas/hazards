@@ -25,7 +25,7 @@ stp_tbl$end_year <- strsplit(stp_tbl$prd, '_') |> purrr::map(2) |> unlist() |> a
 root <- '/home/jovyan/common_data'
 
 # Available indices
-indices <- c('NTX30','NTX35') # c('NDD','NDWL0','NDWL50','NDWS','PTOT','TAI','TMAX','TMIN') # 'NTX30','NTX35'
+indices <- c('NTX30','NTX35') # c('NDD','NDWL0','NDWL50','NDWS','PTOT','TAI','TMAX','TMIN','NTX30','NTX35')
 
 for (index in indices) {
   
