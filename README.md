@@ -115,7 +115,7 @@ get_daily_future_data(gcm = "ACCESS-ESM1-5",
 
 **Updates: July, 2025**
 
-The daily future precipitation files were corrected to preserve a reasonable range of variation. Due to mathematical indeterminacies in the delta formula [Navarro-Racines et al., (2020)](https://www.nature.com/articles/s41597-019-0343-8), extreme delta values were constrained from -1.5 to 1.5; this means maximum decreases and increases of 150%. Additionally, the minimum monthly precipitation values used to calculate anomalies were capped at 1mm/month in both the historical and future GCM datasets.
+The daily future precipitation files were corrected to preserve a reasonable range of variation. Due to mathematical indeterminacies in the delta formula from [Navarro-Racines et al., (2020)](https://www.nature.com/articles/s41597-019-0343-8), extreme delta values were constrained from -1.5 to 1.5; this means maximum decreases and increases of 150%. Additionally, the minimum monthly precipitation values used to calculate anomalies were capped at 1mm/month in both the historical and future GCM datasets.
 
 ### Hazard indices
 This set of functions calculates each index in spatial form, taking as input the downscaled / bias-corrected CMIP6 daily data. A script is provided for each hazard index. Note that these scripts contain both paths, execution loops (or `purrr::map()`), and functions. So some modifications will be in order for them to work in a new computing environment than ours. Most functions take the year and month as input, and in some cases other additional parameters. For example, for NTx40, we built the function `calc_ntx()`, which is used as follows:
