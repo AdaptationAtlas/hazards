@@ -2,6 +2,17 @@
 
 Scripts for processing of historical and future hazards data. For more information see the [wiki](https://github.com/AdaptationAtlas/hazards/wiki).
 
+**Updates: July, 2025**
+Currently, we have hazard data from two sources. The first dataset uses the bias correction delta method and has a spatial resolution of 0.05° (~5 km) at the equator. For this dataset, we used five GCMs across the four SSPs (SSP1-2.6, SSP2-4.5, SSP3-7.0, SSP5-8.5) and the 2021-2100 period:
+
+```ACCESS-ESM1-5, EC-Earth3, INM-CM5-0, MPI-ESM1-2-HR, MRI-ESM2-0```
+
+The second dataset corresponds to [Nex-GDDP-CMIP6](https://developers.google.com/earth-engine/datasets/catalog/NASA_GDDP-CMIP6). This dataset has a spatial resolution of 0.25° (~25 km). Eighteen GCMs were used across the four SSPs and for the 2021-2100 period:
+
+```ACCESS-CM2, ACCESS-ESM1-5, CMCC-ESM2, CanESM5, EC-Earth3, EC-Earth3-Veg-LR, GFDL-ESM4, INM-CM4-8, INM-CM5-0, IPSL-CM6A-LR, KACE-1-0-G, MIROC6, MPI-ESM1-2-HR, MPI-ESM1-2-LR, MRI-ESM2-0, NorESM2-LM, NorESM2-MM, TaiESM1```
+
+Both datasets cover the five required daily variables (minimum and maximum temperatures, precipitation, solar radiation, and relative humidity) under the same initial simulation conditions (r1i1p1f1).
+
 ## Hazards included
 
 As of January 2022, we have calculated a total of 10 hazard indices. The descriptions of these are available in the wiki, under [hazard definitions](https://github.com/AdaptationAtlas/hazards/wiki/Hazards-definitions). The indices are as follows,
@@ -22,7 +33,7 @@ As of January 2022, we have calculated a total of 10 hazard indices. The descrip
   - NDWL0: number of days with soil waterlogging at moisture content at start of saturation or above.
   - NDWL50: number of days with soil waterlogging at moisture content 50% between field capacity and saturation.
 
-These data are available for two SSPs (SSP2-4.5, SSP5=8.5), two periods (2021-2040, 2041-2060), and five GCMs (ACCESS-ESM1-5, MPI-ESM1-2-HR, EC-Earth3, INM-CM5-0, MRI-ESM2-0) in addition to the multi-model ensemble mean.
+These data are available for four SSPs (SSP1-2.6, SSP2-4.5, SSP3-7.0, SSP5-8.5), four periods (2021-2040, 2041-2060, 2061-2080, 2081-2100), and five GCMs (ACCESS-ESM1-5, MPI-ESM1-2-HR, EC-Earth3, INM-CM5-0, MRI-ESM2-0) in addition to the multi-model ensemble mean.
 
 ## Where is the data?
 While the Atlas is under development, the data is internally available to Atlas scientists in the EiA server under `~/common_data/atlas_hazards/cmip6`. The data are also available in the [AWS S3](s3://digital-atlas/Updates_for_MVP_Release/1_hazards/) and [Google Cloud](gs://adaptation-atlas/cmip6_hazards/) buckets.
@@ -100,6 +111,9 @@ get_daily_future_data(gcm = "ACCESS-ESM1-5",
                       var = "tasmax",
                       prd = "2021_2040")
 ```
+
+**Updates: July, 2025**
+The daily future precipitation files were corrected to preserve a reasonable range of variation. Due to mathematical indeterminacies in the delta formula [Navarro-Racines et al., (2020)](https://www.nature.com/articles/s41597-019-0343-8), extreme delta values were constrained from -1.5 to 1.5; this means maximum decreases and increases of 150%. Additionally, the minimum monthly precipitation values used to calculate anomalies were capped at 1mm/month in both the historical and future GCM datasets.
 
 ### Hazard indices
 This set of functions calculates each index in spatial form, taking as input the downscaled / bias-corrected CMIP6 daily data. A script is provided for each hazard index. Note that these scripts contain both paths, execution loops (or `purrr::map()`), and functions. So some modifications will be in order for them to work in a new computing environment than ours. Most functions take the year and month as input, and in some cases other additional parameters. For example, for NTx40, we built the function `calc_ntx()`, which is used as follows:
