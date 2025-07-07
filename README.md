@@ -3,11 +3,12 @@
 Scripts for processing of historical and future hazards data. For more information see the [wiki](https://github.com/AdaptationAtlas/hazards/wiki).
 
 **Updates: July, 2025**
-Currently, we have hazard data from two sources. The first dataset uses the bias correction delta method and has a spatial resolution of 0.05° (~5 km) at the equator. For this dataset, we used five GCMs across the four SSPs (SSP1-2.6, SSP2-4.5, SSP3-7.0, SSP5-8.5) and the 2021-2100 period:
+
+Currently, we have hazard data from two sources. The first dataset uses the bias correction delta method and has a spatial resolution of 0.05° (~5 km) at the equator (```main``` branch). For this dataset, we used five GCMs across the four SSPs (SSP1-2.6, SSP2-4.5, SSP3-7.0, SSP5-8.5) and the 2021-2100 period ![branch icon](https://img.icons8.com/ios-filled/16/000000/git.png) `main`
 
 ```ACCESS-ESM1-5, EC-Earth3, INM-CM5-0, MPI-ESM1-2-HR, MRI-ESM2-0```
 
-The second dataset corresponds to [Nex-GDDP-CMIP6](https://developers.google.com/earth-engine/datasets/catalog/NASA_GDDP-CMIP6). This dataset has a spatial resolution of 0.25° (~25 km). Eighteen GCMs were used across the four SSPs and for the 2021-2100 period:
+The second dataset corresponds to [Nex-GDDP-CMIP6](https://developers.google.com/earth-engine/datasets/catalog/NASA_GDDP-CMIP6). This dataset has a spatial resolution of 0.25° (```nexgddp``` branch). Eighteen GCMs were used across the four SSPs and for the 2021-2100 period:
 
 ```ACCESS-CM2, ACCESS-ESM1-5, CMCC-ESM2, CanESM5, EC-Earth3, EC-Earth3-Veg-LR, GFDL-ESM4, INM-CM4-8, INM-CM5-0, IPSL-CM6A-LR, KACE-1-0-G, MIROC6, MPI-ESM1-2-HR, MPI-ESM1-2-LR, MRI-ESM2-0, NorESM2-LM, NorESM2-MM, TaiESM1```
 
@@ -113,6 +114,7 @@ get_daily_future_data(gcm = "ACCESS-ESM1-5",
 ```
 
 **Updates: July, 2025**
+
 The daily future precipitation files were corrected to preserve a reasonable range of variation. Due to mathematical indeterminacies in the delta formula [Navarro-Racines et al., (2020)](https://www.nature.com/articles/s41597-019-0343-8), extreme delta values were constrained from -1.5 to 1.5; this means maximum decreases and increases of 150%. Additionally, the minimum monthly precipitation values used to calculate anomalies were capped at 1mm/month in both the historical and future GCM datasets.
 
 ### Hazard indices
