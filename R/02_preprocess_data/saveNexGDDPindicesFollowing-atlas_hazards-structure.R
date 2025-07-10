@@ -12,7 +12,7 @@ list.files2 <- Vectorize(FUN = list.files, vectorize.args = 'pattern')
 
 # Setup table
 ssps <- c('ssp126','ssp245','ssp370','ssp585')
-gcms <- c('ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0')
+gcms <- c('ACCESS-CM2', 'CMCC-ESM2', 'EC-Earth3-Veg-LR') # c('ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0')
 prds <- c('2021_2040','2041_2060','2061_2080','2081_2100')
 stp_tbl <- expand.grid(ssp = ssps, gcm = gcms, prd = prds, stringsAsFactors = F) |>
   base::as.data.frame() |>
@@ -25,7 +25,7 @@ stp_tbl$end_year <- strsplit(stp_tbl$prd, '_') |> purrr::map(2) |> unlist() |> a
 root <- '/home/jovyan/common_data'
 
 # Available indices
-indices <- c('NTX30','NTX35') # c('NDD','NDWL0','NDWL50','NDWS','PTOT','TAI','TMAX','TMIN','NTX30','NTX35')
+indices <- c('NDD','NDWL0','NDWL50','NDWS','PTOT','TAI','TMAX','TMIN','NTX30','NTX35')
 
 for (index in indices) {
   
