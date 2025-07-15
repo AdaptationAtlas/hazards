@@ -163,7 +163,7 @@ calc_ndwl50 <- function(yr, mn){
                                     rain    = prc[[j]],
                                     evap    = ETMAX[[j]])
       # Update AVAIL with deep copy to avoid memory leaks
-      AVAIL <<- terra::deepcopy(water_balance$Availability)
+      AVAIL <- terra::deepcopy(water_balance$Availability)
       # Store result and clean temporary objects
       watbal[[j]] <- water_balance
       rm(water_balance)

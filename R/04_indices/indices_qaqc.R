@@ -8,7 +8,7 @@ root <- '/home/jovyan/common_data'
 
 ## Mask creation ----
 # Region of interest
-country <- 'KEN' # KEN, BFA, GHA, AGO
+country <- 'BFA' # KEN, BFA, GHA, AGO
 bbox <- geodata::gadm(country, 0, tempdir())
 # Load production data in tons from MapSPAM
 mapspam_all <- terra::rast(file.path(root,'hazards_prototype/Data/mapspam/2020V1r2_SSA/processed/variable=prod_t/spam_prod_t_all.tif'))
@@ -23,7 +23,7 @@ msk <- terra::resample(x = mapspam_maize, y = tmp25)
 terra::writeRaster(msk, '~/maize_mask.tif', overwrite = T)
 
 ## Setup table ----
-index <- 'TAI'
+index <- 'NDWS'
 if (index == 'TAI') {
   ssps <- c('ssp126','ssp245','ssp370','ssp585')
   gcms <- c('ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0')
