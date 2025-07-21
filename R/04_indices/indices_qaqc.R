@@ -111,7 +111,7 @@ if (index == 'TAI') {
     ggplot2::theme_bw()
 } else {
   indices_qaqc_lng |>
-    dplyr::filter(prd == '2021_2040') |>
+    dplyr::filter(prd == '2081_2100') |>
     dplyr::mutate(mn = factor(mn, levels = sprintf('%02d', 1:12), ordered = T)) |>
     ggplot2::ggplot(aes(x = mn, y = value, colour = gcm, group = gcm)) +
     ggplot2::geom_line() +

@@ -118,3 +118,37 @@ daily.pca.res <- daily_sts |> dplyr::select(mean, min, max, stdev, q1, median, q
 # library(terra)
 # r <- terra::rast(file.path(root,'atlas_hazards/cmip6/indices',stp_tbl$folder[i],'PTOT/PTOT-2021-01.tif'))
 # terra::extract(x = r, y = data.frame(lon = -6.40778, lat = 9.29731))
+
+# Solar radiation
+if (!file.exists(dly_sts_file)) {
+  stp_tbl$daily_folder <- paste0('solar_radiation_flux_',stp_tbl$gcm,'_',stp_tbl$ssp,'_',stp_tbl$prd)
+  for (i in 1:nrow(stp_tbl)) {
+    
+    cat('Processing', stp_tbl$daily_folder[i],'\n')
+    system(command =
+             paste0(app_call,
+                    file.path(root,'ecmwf_agera5_cmip6_africa',stp_tbl$daily_folder[i]),
+                    app_args)
+    )
+    
+  }; rm(i)
+  # Read daily statistics
+  daily_sts <- 1:nrow(stp_tbl) |>
+    purrr::map(.f = function(i) {
+      
+      sts <- utils::read.csv(file.path(root,'ecmwf_agera5_cmip6_africa',stp_tbl$daily_folder[i],'qaqc.csv'))
+      return(sts)
+      
+    }) |> dplyr::bind_rows()
+  #daily_sts <- daily_sts[grep('chirps-v2.0*.*.tif', daily_sts$file),]
+  arrow::write_parquet(daily_sts, dly_sts_file)
+} else {
+  daily_sts <- arrow::read_parquet(dly_sts_file) |> base::as.data.frame()
+}; rm(dly_sts_file)
+
+daily_sts |>
+  ggplot2::ggplot(aes(x = q3, y = max)) +
+  ggplot2::geom_point(alpha = 0.1) +
+  ggplot2::theme_bw()
+# PCA
+daily.pca.res <- daily_sts |> dplyr::select(mean, min, max, stdev, q1, median, q3) |> FactoMineR::PCA(scale.unit = T, ncp = 7, graph = T)
