@@ -12,7 +12,7 @@ list.files2 <- Vectorize(FUN = list.files, vectorize.args = 'pattern')
 
 # Setup table
 ssps <- c('ssp126','ssp245','ssp370','ssp585')
-gcms <- c('CanESM5','GFDL-ESM4','INM-CM4-8','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-LR','NorESM2-LM','NorESM2-MM','TaiESM1') # c('ACCESS-CM2','ACCESS-ESM1-5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0')
+gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1') # c('CanESM5','GFDL-ESM4','INM-CM4-8','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-LR','NorESM2-LM','NorESM2-MM','TaiESM1') # c('ACCESS-CM2','ACCESS-ESM1-5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0')
 prds <- c('2021_2040','2041_2060','2061_2080','2081_2100')
 stp_tbl <- expand.grid(ssp = ssps, gcm = gcms, prd = prds, stringsAsFactors = F) |>
   base::as.data.frame() |>
@@ -25,7 +25,7 @@ stp_tbl$end_year <- strsplit(stp_tbl$prd, '_') |> purrr::map(2) |> unlist() |> a
 root <- '/home/jovyan/common_data'
 
 # Available indices
-indices <- c('NDD','NDWL0','NDWL50','NDWS','PTOT','TAI','TMAX','TMIN','NTX30','NTX35')
+indices <- c('TAVG') # c('NDD','NDWL0','NDWL50','NDWS','PTOT','TAI','TMAX','TMIN','NTX30','NTX35')
 
 for (index in indices) {
   
