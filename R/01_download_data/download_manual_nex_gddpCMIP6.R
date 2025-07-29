@@ -1,5 +1,5 @@
-#download CMIP6 downscaled+bias corrected data from Nex-GDDP-CMIP6
-#HAE, Feb 2025
+# Download CMIP6 downscaled+bias corrected data from Nex-GDDP-CMIP6
+# HAE, Feb 2025
 
 #R options
 options(warn = -1, scipen = 999)
@@ -16,6 +16,8 @@ urlFileExist <- function(url){
   list(exists = status == HTTP_STATUS_OK)
 }
 
+scenario <- 'historical'
+
 #available files to download
 fls <- readLines('https://nex-gddp-cmip6.s3-us-west-2.amazonaws.com/index_v1.1_md5.txt')
 nms <- strsplit(fls, split = '/') |> purrr::map(6) |> unlist()
@@ -24,10 +26,17 @@ nms <- strsplit(fls, split = '/') |> purrr::map(6) |> unlist()
 root <- 'https://nex-gddp-cmip6.s3.us-west-2.amazonaws.com/NEX-GDDP-CMIP6'
 
 #filters to apply
-gcms <- c('ACCESS-ESM1-5','MPI-ESM1-2-HR','EC-Earth3','INM-CM5-0','MRI-ESM2-0')
-ssps <- c('ssp126','ssp245','ssp370','ssp585')
-vars <- c('hurs', 'rsds') # c('pr','tasmax','tasmin')
-yrs <- 2021:2100
+gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
+vars <- c('pr','tasmax','tasmin','hurs', 'rsds')
+if (scenario == 'future') {
+  ssps <- c('ssp126','ssp245','ssp370','ssp585')
+  yrs <- 2021:2100
+} else {
+  if (scenario == 'historical') {
+    ssps <- 'historical'
+    yrs <- 1995:2014
+  }
+}
 
 #setup table
 stp <- base::expand.grid(gcm = gcms, ssp = ssps, var = vars, yr = yrs, stringsAsFactors = F) |>
@@ -35,7 +44,14 @@ stp <- base::expand.grid(gcm = gcms, ssp = ssps, var = vars, yr = yrs, stringsAs
 #available files to download
 wd <- '/home/jovyan/common_data/nex-gddp-cmip6'
 dir.create(wd, F, T)
-if(!file.exists(file.path(wd,'cmip6_add_files_to_download.csv'))) {
+if (scenario == 'future') {
+  outfile <- file.path(wd,'cmip6_future_files_to_download.csv')
+} else {
+  if (scenario == 'historical') {
+    outfile <- file.path(wd,'cmip6_baseline_files_to_download.csv')
+  }
+}
+if(!file.exists(outfile)) {
   plan(multisession, workers = 30)
   available_files <-  1:nrow(stp) |>
     furrr::future_map(.f = function(i) {
@@ -70,10 +86,10 @@ if(!file.exists(file.path(wd,'cmip6_add_files_to_download.csv'))) {
   gc(F,T,T)
   
   stp <- cbind(stp, available_files); rm(available_files)
-  utils::write.csv(x = stp, file = file.path(wd,'cmip6_add_files_to_download.csv'), row.names = F)
+  utils::write.csv(x = stp, file = outfile, row.names = F)
   
 } else {
-  stp <- utils::read.csv(file.path(wd,'cmip6_add_files_to_download.csv'))
+  stp <- utils::read.csv(outfile)
 }
 
 #download files
