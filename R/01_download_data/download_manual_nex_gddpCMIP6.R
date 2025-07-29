@@ -1,10 +1,11 @@
 # Download CMIP6 downscaled+bias corrected data from Nex-GDDP-CMIP6
-# HAE, Feb 2025
+# By: H. Achicanoy
+# Alliance Bioversity International & CIAT, 2025
 
-#R options
+# R options
 options(warn = -1, scipen = 999)
 
-#load libraries and functions
+# Load libraries and functions
 if(!require(pacman)){install.packages('pacman');library(pacman)} else {library(pacman)}
 pacman::p_load(purrr,furrr,future,dplyr,httr)
 grep2 <- Vectorize(grep, 'pattern')
@@ -18,14 +19,14 @@ urlFileExist <- function(url){
 
 scenario <- 'historical'
 
-#available files to download
-fls <- readLines('https://nex-gddp-cmip6.s3-us-west-2.amazonaws.com/index_v1.1_md5.txt')
-nms <- strsplit(fls, split = '/') |> purrr::map(6) |> unlist()
+# # Available files to download
+# fls <- readLines('https://nex-gddp-cmip6.s3-us-west-2.amazonaws.com/index_v1.1_md5.txt')
+# nms <- strsplit(fls, split = '/') |> purrr::map(6) |> unlist()
 
-#root URL for downloads
+# Root URL for downloads
 root <- 'https://nex-gddp-cmip6.s3.us-west-2.amazonaws.com/NEX-GDDP-CMIP6'
 
-#filters to apply
+# Filters to apply
 gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
 vars <- c('pr','tasmax','tasmin','hurs','rsds')
 if (scenario == 'future') {
@@ -38,10 +39,10 @@ if (scenario == 'future') {
   }
 }
 
-#setup table
+# Setup table
 stp <- base::expand.grid(gcm = gcms, ssp = ssps, var = vars, yr = yrs, stringsAsFactors = F) |>
   base::as.data.frame(); rm(gcms, ssps, vars, yrs)
-#available files to download
+# Available files to download
 wd <- '/home/jovyan/common_data/nex-gddp-cmip6'
 dir.create(wd, F, T)
 if (scenario == 'future') {
@@ -92,7 +93,7 @@ if(!file.exists(outfile)) {
   stp <- utils::read.csv(outfile)
 }
 
-#download files
+# Download files (serial)
 1:nrow(stp) |>
   purrr::map(.f = function(i) {
     
@@ -109,6 +110,7 @@ if(!file.exists(outfile)) {
   })
 gc(F, T, T)
 
+# # Download files (parallel)
 # plan(multisession, workers = 30)
 # 1:nrow(stp) |>
 #   furrr::future_map(.f = function(i) {

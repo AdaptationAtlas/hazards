@@ -1,19 +1,22 @@
-# Nex-GDDP CMIP6 to Atlas data structure
+# Nex-GDDP-CMIP6 to Atlas data structure
 # By: H. Achicanoy
-# ABC, March 2025
+# Alliance Bioversity-International & CIAT, 2025
 
+# R options
 options(warn = -1, scipen = 999)
 if (!require(pacman)) {install.packages('pacman'); library(pacman)} else {library(pacman)}
 pacman::p_load(tidyverse, terra, furrr, future, xts, tsbox)
 
+# Root directory
 root <- '/home/jovyan/common_data'
 
-## Conversion factors to apply
+## Conversion factors
 # Precipitation: pr * 86400
 # Temperatures: tasmax, tasmin - 273.15
 # Solar radiation: rsds * 86400 / 1000000
-# rotate
+# Rotate
 
+# Get daily transformed data
 get_daily_data <- function (vr, ssp, gcm) {
   
   # Input directory
@@ -70,9 +73,17 @@ get_daily_data <- function (vr, ssp, gcm) {
   
 }
 
-vrs <- c('pr','tasmax','tasmin','rsds','hurs') # Weather variables
-ssps <- c('ssp126','ssp245','ssp370','ssp585') # SSP scenarios
-gcms <- c('ACCESS-ESM1-5','EC-Earth3','INM-CM5-0','MPI-ESM1-2-HR','MRI-ESM2-0') # GCM models
+scenario <- 'historical'
+
+if (scenario == 'future'){
+  ssps <- c('ssp126','ssp245','ssp370','ssp585')
+} else {
+  if (scenario == 'historical') {
+    ssps <- 'historical'
+  }
+}
+vrs <- c('pr','tasmax','tasmin','rsds','hurs')
+gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
 
 stp <- base::expand.grid(gcm = gcms, ssp = ssps, vr = vrs, stringsAsFactors = F) |>
   base::as.data.frame(); rm(vrs, ssps, gcms)

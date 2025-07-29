@@ -1,6 +1,6 @@
-## Thornthwaite's Aridity Index (TAI)
-## By: H. Achicanoy, F. Castro
-## May, 2025
+# Compute Thornthwaite's Aridity Index (TAI)
+# By: H. Achicanoy, F. Castro
+# Alliance Bioversity International & CIAT, 2025
 
 # R options
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
@@ -105,29 +105,35 @@ calc_tai <- function(yr){
   }
 }
 
+# Runs
+scenario <- 'historical' # historical, future
+if (scenario == 'future') {
+  ssps <- c('ssp126', 'ssp245', 'ssp370', 'ssp585')
+  yrs <- 2021:2100
+} else {
+  if (scenario == 'historical') {
+    ssps <- 'historical'
+    yrs <- 1995:2014
+  }
+}
+gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
 
-# Future setup
-#gcm <- 'EC-Earth3' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
-
-for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
+for (gcm in gcms) {
   
-  for (ssp in c('ssp126', 'ssp245', 'ssp370', 'ssp585')) {
-    
-    # ssp <- 'ssp585'
-    # prd <- '2021_2040'
-    # gcm <- 'ACCESS-ESM1-5'
+  for (ssp in ssps) {
     
     cmb <- paste0(ssp, '_', gcm)
     cat(cmb, '\n')
     
-    pr_pth <- paste0(root,'/nex-gddp-cmip6/pr/', ssp, '/', gcm) # Precipitation
-    tm_pth <- paste0(root,'/nex-gddp-cmip6/tasmin/', ssp, '/', gcm) # Minimum temperature
-    tx_pth <- paste0(root,'/nex-gddp-cmip6/tasmax/', ssp, '/', gcm) # Maximum temperature
-    out_dir <- paste0(root,'/nex-gddp-cmip6_indices/', cmb, '/TAI')
+    pr_pth <- paste0(root,'/nex-gddp-cmip6/pr/',ssp,'/',gcm) # Precipitation
+    tm_pth <- paste0(root,'/nex-gddp-cmip6/tasmin/',ssp,'/',gcm) # Minimum temperature
+    tx_pth <- paste0(root,'/nex-gddp-cmip6/tasmax/',ssp,'/',gcm) # Maximum temperature
+    out_dir <- paste0(root,'/nex-gddp-cmip6_indices/',cmb,'/TAI')
     
-    2021:2100 %>%
-      purrr::map(.f = function(i){calc_tai(yr = i)})
+    yrs |> purrr::map(.f = function(yr){ calc_tai(yr = yr) }); gc(F, T, T)
+    tmpfls <- list.files(tempdir(), full.names = T)
+    1:length(tmpfls) |> purrr::map(.f = function(k) {system(paste0('rm -f ', tmpfls[k]))})
     
   }
+  
 }
-

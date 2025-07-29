@@ -1,8 +1,7 @@
 # Generate atlas_hazards structure for Nex-GDDP-CMIP6 indices
 # Target directory: ~/common_data/atlas_nex-gddp_hazards/cmip6/indices
-# H. Achicanoy
-# Alliance of Bioversity-CIAT
-# July, 2025
+# By: H. Achicanoy
+# Alliance of Bioversity-CIAT, 2025
 
 # R options
 options(warn = -1, scipen = 999)

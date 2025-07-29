@@ -1,9 +1,8 @@
-## Average monthly temperature
-## By: H. Achicanoy / J. Ramirez-Villegas
-## July, 2025
+# Compute average monthly temperature (TAVG)
+# By: H. Achicanoy / J. Ramirez-Villegas
+# Alliance Bioversity-International & CIAT, 2025
 
 # R options
-g <- gc(reset = T); rm(list = ls()) # Empty garbage collector
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
 suppressMessages(library(pacman))
 suppressMessages(pacman::p_load(tidyverse,terra,gtools,lubridate))
@@ -18,9 +17,7 @@ root <- '/home/jovyan/common_data'
 msk <- terra::rast('/home/jovyan/common_data/chirps_wrld/chirps-v2.0.1981.01.01.tif')
 xtd <- terra::ext(msk)
 
-sce_climate <- 'future' # historical, future
-
-# Function
+# TAVG function
 calc_tav <- function(yr, mn){
   
   # yr <- '2021'; mn <- '01'
@@ -67,60 +64,37 @@ calc_tav <- function(yr, mn){
 # gcms  <- args[2]
 
 # Runs
-if (sce_climate == 'future') {
-  
-  ssps <- c('ssp126','ssp245','ssp370','ssp585') 
-  gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
-  
-  for(ssp in ssps){
-    for(gcm in gcms){
-      
-      ## Parameters
-      cmb <- paste0(ssp, '_', gcm)
-      yrs <- 2021:2100
-      mnt <- sprintf('%02.0f',1:12)
-      stp <- base::expand.grid(yrs, mnt, stringsAsFactors = F) |> setNames(c('yrs', 'mnt')) |> dplyr::arrange(yrs, mnt) |> base::as.data.frame(); rm(yrs, mnt)
-      
-      ## Setup in/out files
-      tn_pth <- paste0(root, '/nex-gddp-cmip6/tasmin/', ssp, '/', gcm) # Daily minimum temperatures
-      tx_pth <- paste0(root, '/nex-gddp-cmip6/tasmax/', ssp, '/', gcm) # Daily maximum temperatures
-      out_dir <- paste0(root, '/nex-gddp-cmip6_indices/', ssp, '_', gcm, '/TAVG/')
-      
-      1:nrow(stp) |> purrr::map(.f = function(i){calc_tav(yr = stp$yrs[i], mn = stp$mnt[i])})
-      tmpfls <- list.files(tempdir(), full.names = T)
-      1:length(tmpfls) |> purrr::map(.f = function(k) {system(paste0('rm -f ', tmpfls[k]))})
-      ##
-      cat('----Finish----\n')
-      
-    }
-  }
-  
+scenario <- 'historical' # historical, future
+if (scenario == 'future') {
+  ssps <- c('ssp126', 'ssp245', 'ssp370', 'ssp585')
+  yrs <- 2021:2100
 } else {
-  if (sce_climate == 'historical') {
+  if (scenario == 'historical') {
+    ssps <- 'historical'
+    yrs <- 1995:2014
+  }
+}
+gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
+
+for (gcm in gcms) {
+  
+  for (ssp in ssps) {
     
-    ssp  <- 'historical'
-    gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
+    ## Parameters
+    cmb <- paste0(ssp, '_', gcm)
+    mnt <- sprintf('%02.0f',1:12)
+    stp <- base::expand.grid(yrs, mnt, stringsAsFactors = F) |> setNames(c('yrs', 'mnt')) |> dplyr::arrange(yrs, mnt) |> base::as.data.frame(); rm(yrs, mnt)
     
-    for (gcm in gcms) {
-      
-      ## Parameters
-      cmb <- paste0(ssp, '_', gcm)
-      yrs <- 1995:2014
-      mnt <- sprintf('%02.0f',1:12)
-      stp <- base::expand.grid(yrs, mnt, stringsAsFactors = F) |> setNames(c('yrs', 'mnt')) |> dplyr::arrange(yrs, mnt) |> base::as.data.frame(); rm(yrs, mnt)
-      
-      ## Setup in/out files
-      tn_pth <- paste0(root, '/nex-gddp-cmip6/tasmin/', ssp, '/', gcm) # Daily minimum temperatures
-      tx_pth <- paste0(root, '/nex-gddp-cmip6/tasmax/', ssp, '/', gcm) # Daily maximum temperatures
-      out_dir <- paste0(root, '/nex-gddp-cmip6_indices/', ssp, '_', gcm, '/TAVG/')
-      
-      1:nrow(stp) |> purrr::map(.f = function(i){calc_tav(yr = stp$yrs[i], mn = stp$mnt[i])})
-      tmpfls <- list.files(tempdir(), full.names = T)
-      1:length(tmpfls) |> purrr::map(.f = function(k) {system(paste0('rm -f ', tmpfls[k]))})
-      ##
-      cat('----Finish----\n')
-      
-    }
+    ## Setup in/out files
+    tn_pth <- paste0(root, '/nex-gddp-cmip6/tasmin/', ssp, '/', gcm) # Daily minimum temperatures
+    tx_pth <- paste0(root, '/nex-gddp-cmip6/tasmax/', ssp, '/', gcm) # Daily maximum temperatures
+    out_dir <- paste0(root, '/nex-gddp-cmip6_indices/', ssp, '_', gcm, '/TAVG/')
+    
+    1:nrow(stp) |> purrr::map(.f = function(i){calc_tav(yr = stp$yrs[i], mn = stp$mnt[i])}); gc(F, T, T)
+    tmpfls <- list.files(tempdir(), full.names = T)
+    1:length(tmpfls) |> purrr::map(.f = function(k) {system(paste0('rm -f ', tmpfls[k]))})
+    cat('----Finish----\n')
     
   }
+  
 }

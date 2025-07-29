@@ -1,6 +1,6 @@
-## Heat stress generic crop and threshold (i.e., NTx40)
-## By: H. Achicanoy, F. Castro
-## May, 2025
+# Heat stress generic crop and threshold (i.e., NTx40)
+# By: H. Achicanoy, F. Castro
+# Alliance Bioversity International & CIAT, 2025
 
 # R options
 options(warn = -1, scipen = 999)    # Remove warning alerts and scientific notation
@@ -13,7 +13,7 @@ root <- '/home/jovyan/common_data'
 msk <- terra::rast('/home/jovyan/common_data/chirps_wrld/chirps-v2.0.1981.01.01.tif')
 xtd <- terra::ext(msk); rm(msk)
 
-# Calculate NDD function
+# NTx function
 calc_ntx <- function(yr, mn, thr = 40){
   outfile <- paste0(out_dir,'/NTx',thr,'/NTx',thr,'-',yr,'-',mn,'.tif') 
   thr <- thr[!file.exists(outfile)]
