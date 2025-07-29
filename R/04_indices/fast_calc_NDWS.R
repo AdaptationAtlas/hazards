@@ -218,18 +218,18 @@ for (gcm in gcms) {
     names(stp) <- c('yrs','mns')
     stp <- stp |> dplyr::arrange(yrs, mns) |> base::as.data.frame()
     
-    pr_pth <- paste0(root,'/nex-gddp-cmip6/pr/', ssp, '/', gcm)     # Precipitation
-    tm_pth <- paste0(root,'/nex-gddp-cmip6/tasmin/', ssp, '/', gcm) # Minimum temperature
-    tx_pth <- paste0(root,'/nex-gddp-cmip6/tasmax/', ssp, '/', gcm) # Maximum temperature
-    sr_pth <- paste0(root,'/nex-gddp-cmip6/rsds/',ssp,'/',gcm)      # Solar radiation
-    out_dir <- paste0(root,'/nex-gddp-cmip6_indices/',cmb,'/NDWS')  # Output directory
+    pr_pth <- paste0(root,'/nex-gddp-cmip6/pr/',ssp,'/',gcm)     # Precipitation
+    tm_pth <- paste0(root,'/nex-gddp-cmip6/tasmin/',ssp,'/',gcm) # Minimum temperature
+    tx_pth <- paste0(root,'/nex-gddp-cmip6/tasmax/',ssp,'/',gcm) # Maximum temperature
+    sr_pth <- paste0(root,'/nex-gddp-cmip6/rsds/',ssp,'/',gcm)   # Solar radiation
+    out_dir <- paste0(root,'/nex-gddp-cmip6_indices/',cmb,'/NDWS') # Output directory
     
     1:nrow(stp) |>
       purrr::map(.f = function(i){
         calc_ndws(yr = stp$yrs[i], mn = stp$mns[i]); gc(F, T, T)
         if (i%%5 == 0) {
-          tmpfls <- list.files(tempdir(), full.names=TRUE)
-          1:length(tmpfls) |> purrr::map(.f = function(k) {system(paste0("rm -f ", tmpfls[k]))})
+          tmpfls <- list.files(tempdir(), full.names = T)
+          1:length(tmpfls) |> purrr::map(.f = function(k) {system(paste0('rm -f ',tmpfls[k]))})
         }
       })
     

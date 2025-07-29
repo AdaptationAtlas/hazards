@@ -1,6 +1,6 @@
-## Number of waterlogging days at start of saturation (NDWL0)
-## By: H. Achicanoy & A. Mendez
-## April, 2025
+# Compute number of waterlogging days at start of saturation (NDWL0)
+# By: H. Achicanoy & A. Mendez
+# Alliance Bioversity International & CIAT, 2025
 
 # R options
 # args <- commandArgs(trailingOnly = T)
@@ -195,41 +195,45 @@ calc_ndwl0 <- function(yr, mn){
   }
 }
 
-# Future setup
-# gcm <- 'ACCESS-ESM1-5' #'ACCESS-ESM1-5' 'MPI-ESM1-2-HR' 'EC-Earth3' 'INM-CM5-0' 'MRI-ESM2-0'
-# ssp <- 'ssp126'
+# Runs
+scenario <- 'historical' # historical, future
+if (scenario == 'future') {
+  ssps <- c('ssp126', 'ssp245', 'ssp370', 'ssp585')
+  yrs <- 2021:2100
+} else {
+  if (scenario == 'historical') {
+    ssps <- 'historical'
+    yrs <- 1995:2014
+  }
+}
+gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
 
-# gcm <-  'ACCESS-ESM1-5'
-# ssp <- 'ssp126'
-
-for (gcm in c("ACCESS-ESM1-5", "MPI-ESM1-2-HR", "EC-Earth3", "INM-CM5-0", "MRI-ESM2-0")) {
-  for (ssp in c('ssp126', 'ssp245', 'ssp370', 'ssp585')) {
+for (gcm in gcms) {
+  
+  for (ssp in ssps) {
     
     cmb <- paste0(ssp,'_',gcm)
     cat('To process -----> ', cmb, '\n')
-    yrs <- 2021:2100
-    mns <- c(paste0('0',1:9),10:12)
+    mns <- sprintf('%02.0f',1:12)
     stp <- base::expand.grid(yrs, mns, stringsAsFactors = F) |> base::as.data.frame(); rm(yrs,mns)
     names(stp) <- c('yrs','mns')
-    stp <- stp %>%
-      dplyr::arrange(yrs, mns) %>%
-      base::as.data.frame()
+    stp <- stp |> dplyr::arrange(yrs, mns) |> base::as.data.frame()
     
-    pr_pth <- paste0(root,'/nex-gddp-cmip6/pr/', ssp, '/', gcm) # Precipitation
-    tm_pth <- paste0(root,'/nex-gddp-cmip6/tasmin/', ssp, '/', gcm) # Minimum temperature
-    tx_pth <- paste0(root,'/nex-gddp-cmip6/tasmax/', ssp, '/', gcm) # Maximum temperature
-    sr_pth <- paste0(root,'/nex-gddp-cmip6/rsds/',ssp,'/',gcm) # Solar radiation
+    pr_pth <- paste0(root,'/nex-gddp-cmip6/pr/',ssp,'/',gcm)     # Precipitation
+    tm_pth <- paste0(root,'/nex-gddp-cmip6/tasmin/',ssp,'/',gcm) # Minimum temperature
+    tx_pth <- paste0(root,'/nex-gddp-cmip6/tasmax/',ssp,'/',gcm) # Maximum temperature
+    sr_pth <- paste0(root,'/nex-gddp-cmip6/rsds/',ssp,'/',gcm)   # Solar radiation
     out_dir <- paste0(root,'/nex-gddp-cmip6_indices/',cmb,'/NDWL0') # Output directory
     
-    1:nrow(stp) %>%
+    1:nrow(stp) |>
       purrr::map(.f = function(i){
-        calc_ndwl0(yr = stp$yrs[i], mn = stp$mns[i])
-        gc(verbose = T, full = T, reset = T)
+        calc_ndwl0(yr = stp$yrs[i], mn = stp$mns[i]); gc(F, T, T)
         if (i%%5 == 0) {
-          tmpfls <- list.files(tempdir(), full.names=TRUE)
-          1:length(tmpfls) %>% purrr::map(.f = function(k) {system(paste0("rm -f ", tmpfls[k]))})
+          tmpfls <- list.files(tempdir(), full.names = T)
+          1:length(tmpfls) |> purrr::map(.f = function(k) {system(paste0('rm -f ',tmpfls[k]))})
         }
       })
     
   }
+  
 }
