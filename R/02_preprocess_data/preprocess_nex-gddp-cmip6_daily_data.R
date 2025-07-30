@@ -7,6 +7,8 @@ options(warn = -1, scipen = 999)
 if (!require(pacman)) {install.packages('pacman'); library(pacman)} else {library(pacman)}
 pacman::p_load(tidyverse, terra, furrr, future, xts, tsbox)
 
+grep2 <- Vectorize(grep, 'pattern')
+
 # Root directory
 root <- '/home/jovyan/common_data'
 
@@ -36,7 +38,20 @@ get_daily_data <- function (vr, ssp, gcm) {
     # Read annual raster
     r <- terra::rast(fl)
     # Get daily dates
-    dts <- as.character(terra::time(r))
+    if (gcm == 'KACE-1-0-G') {
+      
+      dts <- as.character(terra::time(r))
+      dts <- dts[-which(duplicated(dts))] # Remove duplicated dates
+      yr  <- unique(lubridate::year(dts))
+      leap_yr <- grep(pattern = paste0(yr,'-02-29'), x = dts)
+      if (length(leap_yr) > 0) {dts <- dts[-leap_yr]} # Remove Feb 29 if leap year
+      r <- r[[match(x = dts, table = as.character(time(r)))]]
+      
+    } else {
+      
+      dts <- as.character(terra::time(r))
+      
+    }
     
     # Create output filenames
     out_files <- file.path(outdir, paste0(vr,'_',dts,'.tif'))
