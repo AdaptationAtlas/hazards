@@ -20,32 +20,31 @@ xtd <- terra::ext(msk)
 # TMIN function
 calc_tmin <- function(yr, mn){
   
-  # yr <- '2021'; mn <- '01'
-  
-  outfile <- paste0(out_dir,'TMIN-',yr,'-',mn,'.tif')
-  cat(basename(outfile),'\n')
+  outfile <- paste0(out_dir,'/TMIN-',yr,'-',mn,'.tif')
+  cat(outfile,'\n')
   
   if(!file.exists(outfile)){
     
-    ## Create output directory
     dir.create(dirname(outfile), F, T)
     
-    ## Tidy the dates
-    cat('Processing -------> ', yr, mn, '\n')
+    # Sequence of dates
     last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
     dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
     
+    # Files
     tnfls <- paste0(tn_pth,'/tasmin_',dts,'.tif')
     tnfls <- tnfls[file.exists(tnfls)]
     
-    ## Read minimum temperature data
+    # Read daily minimum temperature data
     tmn <- terra::rast(tnfls)
     tmn <- terra::crop(tmn, xtd)
     
-    # Calculate minimum temperature, clean-up
+    # Calculate minimum temperature
     tmin <- mean(tmn)
     terra::writeRaster(x = tmin, filename = outfile, overwrite = T)
-    rm(tmn); gc(verbose=F, full=T, reset=T)
+    
+    # Clean-up
+    rm(tmn, tmin); gc(F, T, T)
     
   }
   
@@ -79,7 +78,7 @@ for (gcm in gcms) {
     
     ## Setup in/out files
     tn_pth <- paste0(root, '/nex-gddp-cmip6/tasmin/', ssp, '/', gcm) # Daily minimum temperatures
-    out_dir <- paste0(root, '/nex-gddp-cmip6_indices/', ssp, '_', gcm, '/TMIN/')
+    out_dir <- paste0(root, '/nex-gddp-cmip6_indices/', ssp, '_', gcm, '/TMIN')
     
     1:nrow(stp) |> purrr::map(.f = function(i){calc_tmin(yr = stp$yrs[i], mn = stp$mnt[i])}); gc(F, T, T)
     tmpfls <- list.files(tempdir(), full.names = T)

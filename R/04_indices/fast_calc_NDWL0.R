@@ -75,45 +75,38 @@ sst <- terra::rast(paste0(root,'/atlas_hazards/soils/ssat_world.tif'))
 
 # NDWL0 function
 calc_ndwl0 <- function(yr, mn){
+  
   outfile <- paste0(out_dir,'/NDWL0-',yr,'-',mn,'.tif')
   cat(outfile,'\n')
+  
   if (!file.exists(outfile)) {
+    
     dir.create(dirname(outfile),F,T)
-    # Last day of the month
-    last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
+    
     # Sequence of dates
-    if(as.numeric(yr) > 2020 & mn == '02'){
-      dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-28')), by = 'day')
-    } else {
-      dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
-    }
+    last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
+    dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
     
     cat('>>> Iniciando proceso:',yr,'-',mn,'\n')
     
+    # Files
     pr_fls <- paste0(pr_pth,'/pr_', dts,'.tif')
     pr_fls <- pr_fls[file.exists(pr_fls)]
-    
     tx_fls <- paste0(tx_pth, '/tasmax_', dts, '.tif')
     tx_fls <- tx_fls[file.exists(tx_fls)]
-    
     tm_fls <- paste0(tm_pth, '/tasmin_', dts, '.tif')
     tm_fls <- tm_fls[file.exists(tm_fls)]
-    
     sr_fls <- paste0(sr_pth, '/rsds_', dts, '.tif')
     sr_fls <- sr_fls[file.exists(sr_fls)]
     
     # Read variables
     prc <- terra::rast(pr_fls)
     prc <- prc |> terra::crop(xtd)
-    
     tmx <- terra::rast(tx_fls)
     tmx <- tmx |> terra::crop(xtd)
-    
     tmn <- terra::rast(tm_fls)
     tmn <- tmn |> terra::crop(xtd)
-    
     tav <- (tmx + tmn)/2
-    
     srd <- terra::rast(sr_fls)
     srd <- srd |> terra::crop(xtd)
     

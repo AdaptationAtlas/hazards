@@ -28,11 +28,7 @@ calc_hsh <- function(yr, mn){
     
     # Sequence of dates
     last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01'))) # Last day of the month
-    if(as.numeric(yr) > 2020 & mn == '02'){
-      dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-28')), by = 'day')
-    } else {
-      dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
-    }
+    dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
     
     # Files
     tx_fls <- paste0(tx_pth,'/tasmax_',dts,'.tif')
@@ -42,7 +38,7 @@ calc_hsh <- function(yr, mn){
     rh_fls <- paste0(rh_pth,'/hurs_',dts,'.tif')
     rh_fls <- rh_fls[file.exists(rh_fls)]
     
-    # Read variables
+    # Read daily minimum and maximum temperatures, and relative humidity data
     tmx <- terra::rast(tx_fls) |> terra::crop(xtd)
     tmn <- terra::rast(tn_fls) |> terra::crop(xtd)
     rhm <- terra::rast(rh_fls) |> terra::crop(xtd)
@@ -58,6 +54,7 @@ calc_hsh <- function(yr, mn){
     c7 =  2.211732 * 10^(-3)
     c8 =  7.2546 * 10^(-4)
     c9 = -3.582 * 10^(-6)
+    # Compute human stress index
     heat_idx <- function(tmean, rhum){
       hi <- terra::ifel(test = tmean >= 25,
                         yes  = c1 + (c2*tmean) + (c3*rhum) + (c4*tmean*rhum) + (c5*tmean^2) + (c6*rhum^2) + (c7*tmean^2*rhum) + (c8*tmean*rhum^2) + (c9*tmean^2*rhum^2),
@@ -69,13 +66,12 @@ calc_hsh <- function(yr, mn){
     HI_avg <- mean(HI)
     HI_max <- max(HI)
     
-    terra::writeRaster(HI_avg, outfile1)
-    terra::writeRaster(HI_max, outfile2)
-    terra::writeRaster(HI, outfile3)
+    terra::writeRaster(HI_avg, outfile1, overwrite = T)
+    terra::writeRaster(HI_max, outfile2, overwrite = T)
+    terra::writeRaster(HI, outfile3, overwrite = T)
     
-    # Clean up
-    rm(tmx, tmn, tav, rhm, HI, HI_avg, HI_max)
-    gc(verbose=F, full=T, reset=T)
+    # Clean-up
+    rm(tmx, tmn, tav, rhm, HI, HI_avg, HI_max); gc(F, T, T)
     
   }
 }
@@ -103,9 +99,9 @@ for (gcm in gcms) {
     stp <- base::expand.grid(yrs, mnt, stringsAsFactors = F) |> setNames(c('yrs', 'mnt')) |> dplyr::arrange(yrs, mnt) |> base::as.data.frame(); rm(yrs, mnt)
     
     ## Setup in/out files
-    tx_pth <- paste0(root, '/nex-gddp-cmip6/tasmax/', ssp, '/', gcm) # Daily maximum temperatures
-    tn_pth <- paste0(root, '/nex-gddp-cmip6/tasmin/', ssp, '/', gcm) # Daily minimum temperatures
-    rh_pth <- paste0(root, '/nex-gddp-cmip6/hurs/', ssp, '/', gcm) # Daily relative humidity
+    tx_pth <- paste0(root,'/nex-gddp-cmip6/tasmax/',ssp,'/',gcm) # Daily maximum temperatures
+    tn_pth <- paste0(root,'/nex-gddp-cmip6/tasmin/',ssp,'/',gcm) # Daily minimum temperatures
+    rh_pth <- paste0(root,'/nex-gddp-cmip6/hurs/',ssp,'/',gcm)   # Daily relative humidity
     out_dir <- paste0(root,'/nex-gddp-cmip6_indices/',ssp,'_',gcm,'/HSH')
     
     1:nrow(stp) |> purrr::map(.f = function(i){calc_hsh(yr = stp$yrs[i], mn = stp$mnt[i])}); gc(F, T, T)

@@ -20,32 +20,31 @@ xtd <- terra::ext(msk)
 # PTOT function
 calc_ptot <- function(yr, mn){
   
-  # yr <- '2021'; mn <- '01'
-  
-  outfile <- paste0(out_dir,'PTOT-',yr,'-',mn,'.tif')
-  cat(basename(outfile),'\n')
+  outfile <- paste0(out_dir,'/PTOT-',yr,'-',mn,'.tif')
+  cat(outfile,'\n')
   
   if(!file.exists(outfile)){
     
-    ## Create output directory
     dir.create(dirname(outfile), F, T)
     
-    ## Tidy the dates
-    cat('Processing -------> ', yr, mn, '\n')
+    # Sequence of dates
     last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
     dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
     
+    # Files
     fls <- paste0(pr_pth,'/pr_',dts,'.tif')
     fls <- fls[file.exists(fls)]
     
-    ## Read daily precipitation data
+    # Read daily precipitation data
     prc <- terra::rast(fls)
     prc <- terra::crop(prc, xtd)
     
-    # Calculate total precipitation, clean-up
+    # Calculate total precipitation
     ptot <- sum(prc)
     terra::writeRaster(x = ptot, filename = outfile, overwrite = T)
-    rm(prc); gc(verbose=F, full=T, reset=T)
+    
+    # Clean-up
+    rm(prc, ptot); gc(F, T, T)
     
   }
   
@@ -79,7 +78,7 @@ for (gcm in gcms) {
     
     ## Setup in/out files
     pr_pth <- paste0(root,'/nex-gddp-cmip6/pr/',ssp,'/',gcm) # Daily precipitation
-    out_dir <- paste0(root,'/nex-gddp-cmip6_indices/',ssp,'_',gcm,'/PTOT/')
+    out_dir <- paste0(root,'/nex-gddp-cmip6_indices/',ssp,'_',gcm,'/PTOT')
     
     1:nrow(stp) |> purrr::map(.f = function(i){calc_ptot(yr = stp$yrs[i], mn = stp$mnt[i])}); gc(F, T, T)
     tmpfls <- list.files(tempdir(), full.names = T)

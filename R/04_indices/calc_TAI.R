@@ -23,12 +23,17 @@ gc(F, T, T)
 
 # TAI function
 calc_tai <- function(yr){
+  
   outfile <- paste0(out_dir,'/TAI-',yr,'.tif')
   cat(outfile,'\n')
+  
   if (!file.exists(outfile)) {
+    
     dir.create(dirname(outfile),F,T)
+    
     # Sequence of dates
     dts <- seq(from = as.Date(paste0(yr,'-01-01')), to = as.Date(paste0(yr,'-12-31')), by = 'day')
+    
     # Files
     pr_fls <- paste0(pr_pth,'/pr_', dts,'.tif')
     pr_fls <- pr_fls[file.exists(pr_fls)]
@@ -36,6 +41,7 @@ calc_tai <- function(yr){
     tx_fls <- tx_fls[file.exists(tx_fls)]
     tm_fls <- paste0(tm_pth, '/tasmin_', dts, '.tif')
     tm_fls <- tm_fls[file.exists(tm_fls)]
+    
     # Read variables, and calculate monthly summaries, do by month to reduce memory consumption
     prc_ls <- tav_ls <- rng_ls <- c()
     for (j in 1:12) {
@@ -80,9 +86,8 @@ calc_tai <- function(yr){
     names(PREC)  <- c(paste0('PREC_0',1:9),paste0('PREC_', 10:12))
     names(TRNG)  <- c(paste0('TRNG_0',1:9),paste0('TRNG_', 10:12))
     
-    # Clean up
-    rm(tav_ls, prc_ls, rng_ls, tav_month, prc_month, rng_month)
-    gc(F, T, T)
+    # Clean-up
+    rm(tav_ls, prc_ls, rng_ls, tav_month, prc_month, rng_month); gc(F, T, T)
     
     # Resample extraterrestrial solar radiation to 0.25
     srd <- srd |> terra::resample(TMEAN[[1]])
@@ -96,11 +101,10 @@ calc_tai <- function(yr){
     names(TAI) <- yr
     
     # Write output
-    terra::writeRaster(x = TAI, filename = outfile)
+    terra::writeRaster(x = TAI, filename = outfile, overwrite = T)
     
-    # Clean up
-    rm(PET, TMEAN, PREC, TRNG, TAI)
-    gc(F, T, T)
+    # Clean-up
+    rm(PET, TMEAN, PREC, TRNG, TAI); gc(F, T, T)
     
   }
 }

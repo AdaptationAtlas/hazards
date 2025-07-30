@@ -15,23 +15,33 @@ xtd <- terra::ext(msk); rm(msk)
 
 # NDD function
 calc_ndd <- function(yr, mn){
+  
   outfile <- paste0(out_dir,'/NDD-',yr,'-',mn,'.tif')
   cat(outfile,'\n')
+  
   if(!file.exists(outfile)){
+    
     dir.create(dirname(outfile),F,T)
-    # Last day of the month
-    last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
+    
     # Sequence of dates
+    last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
     dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
+    
     # Files
-    fls <- paste0(pr_pth, '/', 'pr_', dts, '.tif')
+    fls <- paste0(pr_pth,'/','pr_',dts,'.tif')
     fls <- fls[file.exists(fls)]
-    # Read precipitation data
+    
+    # Read daily precipitation data
     prc <- terra::rast(fls)
     prc <- terra::crop(prc, xtd)
+    
     # Calculate number of dry days
     ndd <- sum(prc < 1)
-    terra::writeRaster(x = ndd, filename = outfile)
+    terra::writeRaster(x = ndd, filename = outfile, overwrite = T)
+    
+    # Clean-up
+    rm(prc, ndd); gc(F, T, T)
+    
   }
 }
 

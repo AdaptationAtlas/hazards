@@ -20,32 +20,31 @@ xtd <- terra::ext(msk)
 # TMAX function
 calc_tmax <- function(yr, mn){
   
-  # yr <- '2021'; mn <- '01'
-  
-  outfile <- paste0(out_dir,'TMAX-',yr,'-',mn,'.tif')
-  cat(basename(outfile),'\n')
+  outfile <- paste0(out_dir,'/TMAX-',yr,'-',mn,'.tif')
+  cat(outfile,'\n')
   
   if(!file.exists(outfile)){
     
-    ## Create output directory
     dir.create(dirname(outfile), F, T)
     
-    ## Tidy the dates
-    cat('Processing -------> ', yr, mn, '\n')
+    # Sequence of dates
     last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01')))
     dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
     
+    # Files
     txfls <- paste0(tx_pth,'/tasmax_',dts,'.tif')
     txfls <- txfls[file.exists(txfls)]
     
-    ## Read maximum temperature data
+    ## Read daily maximum temperature data
     tmx <- terra::rast(txfls)
     tmx <- terra::crop(tmx, xtd)
     
-    # Calculate maximum temperature, clean-up
+    # Calculate maximum temperature
     tmax <- mean(tmx)
     terra::writeRaster(x = tmax, filename = outfile, overwrite = T)
-    rm(tmx); gc(verbose=F, full=T, reset=T)
+    
+    # Clean-up
+    rm(tmx, tmax); gc(F, T, T)
     
   }
   
@@ -79,7 +78,7 @@ for (gcm in gcms) {
     
     ## Setup in/out files
     tx_pth <- paste0(root, '/nex-gddp-cmip6/tasmax/', ssp, '/', gcm) # Daily maximum temperatures
-    out_dir <- paste0(root, '/nex-gddp-cmip6_indices/', ssp, '_', gcm, '/TMAX/')
+    out_dir <- paste0(root, '/nex-gddp-cmip6_indices/', ssp, '_', gcm, '/TMAX')
     
     1:nrow(stp) |> purrr::map(.f = function(i){calc_tmax(yr = stp$yrs[i], mn = stp$mnt[i])}); gc(F, T, T)
     tmpfls <- list.files(tempdir(), full.names = T)

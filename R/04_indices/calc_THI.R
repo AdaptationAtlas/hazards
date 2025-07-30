@@ -30,11 +30,7 @@ calc_thi <- function(yr, mn){
     
     # Sequence of dates
     last_day <- lubridate::days_in_month(as.Date(paste0(yr,'-',mn,'-01'))) # Last day of the month
-    if(as.numeric(yr) > 2020 & mn == '02'){
-      dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-28')), by = 'day')
-    } else {
-      dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
-    }
+    dts <- seq(from = as.Date(paste0(yr,'-',mn,'-01')), to = as.Date(paste0(yr,'-',mn,'-',last_day)), by = 'day')
     
     # Files
     tx_fls <- paste0(tx_pth,'/tasmax_',dts,'.tif')
@@ -42,7 +38,7 @@ calc_thi <- function(yr, mn){
     rh_fls <- paste0(rh_pth,'/hurs_',dts,'.tif')
     rh_fls <- rh_fls[file.exists(rh_fls)]
     
-    # Read variables
+    # Read daily maximum temperature and relative humidity data
     tmx <- terra::rast(tx_fls) |> terra::crop(xtd)
     rhm <- terra::rast(rh_fls) |> terra::crop(xtd)
     
@@ -57,13 +53,12 @@ calc_thi <- function(yr, mn){
     THI_max <- max(THI)
     
     # Write output
-    terra::writeRaster(THI_avg, outfile1)
-    terra::writeRaster(THI_max, outfile2)
-    terra::writeRaster(THI, outfile3)
+    terra::writeRaster(THI_avg, outfile1, overwrite = T)
+    terra::writeRaster(THI_max, outfile2, overwrite = T)
+    terra::writeRaster(THI, outfile3, overwrite = T)
     
-    # Clean up
-    rm(tmx, rhm, THI, THI_avg, THI_max)
-    gc(verbose=F, full=T, reset=T)
+    # Clean-up
+    rm(tmx,rhm,THI,THI_avg,THI_max); gc(F, T, T)
   }
 }
 
