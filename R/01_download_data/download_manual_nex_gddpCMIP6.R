@@ -43,7 +43,7 @@ if (scenario == 'future') {
 stp <- base::expand.grid(gcm = gcms, ssp = ssps, var = vars, yr = yrs, stringsAsFactors = F) |>
   base::as.data.frame(); rm(gcms, ssps, vars, yrs)
 # Available files to download
-wd <- '/home/jovyan/common_data/nex-gddp-cmip6'
+wd <- '/home/jovyan/common_data/nex-gddp-cmip6_raw'
 dir.create(wd, F, T)
 if (scenario == 'future') {
   outfile <- file.path(wd,'cmip6_future_files_to_download.csv')
