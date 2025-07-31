@@ -121,7 +121,7 @@ calc_ndwl0 <- function(yr, mn){
     
     # Compute water balance model
     date <- paste0(yr,'-',mn)
-    if(date %in% c('2021-01')){
+    if(date %in% c('1995-01','2021-01')){
       AVAIL <<- ETMAX[[1]] * 0
       AVAIL[!is.na(AVAIL)] <- 0
     } else {
