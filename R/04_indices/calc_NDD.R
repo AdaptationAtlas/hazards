@@ -65,7 +65,7 @@ for (gcm in gcms) {
     ## Parameters
     cmb <- paste0(ssp,'_',gcm)
     mnt <- sprintf('%02.0f',1:12)
-    stp <- base::expand.grid(yrs, mnt, stringsAsFactors = F) |> base::as.data.frame() |> setNames(c('yrs', 'mnt')) |> dplyr::arrange(yrs, mnt) |> base::as.data.frame(); rm(yrs, mnt)
+    stp <- base::expand.grid(yrs, mnt, stringsAsFactors = F) |> base::as.data.frame() |> setNames(c('yrs', 'mnt')) |> dplyr::arrange(yrs, mnt) |> base::as.data.frame(); rm(mnt)
     
     ## Setup in/out files
     pr_pth  <- paste0(root,'/nex-gddp-cmip6/pr/',ssp,'/',gcm)

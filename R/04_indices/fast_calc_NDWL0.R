@@ -208,7 +208,7 @@ for (gcm in gcms) {
     cmb <- paste0(ssp,'_',gcm)
     cat('To process -----> ', cmb, '\n')
     mns <- sprintf('%02.0f',1:12)
-    stp <- base::expand.grid(yrs, mns, stringsAsFactors = F) |> base::as.data.frame(); rm(yrs,mns)
+    stp <- base::expand.grid(yrs, mns, stringsAsFactors = F) |> base::as.data.frame(); rm(mns)
     names(stp) <- c('yrs','mns')
     stp <- stp |> dplyr::arrange(yrs, mns) |> base::as.data.frame()
     
