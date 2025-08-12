@@ -10,7 +10,7 @@ pacman::p_load(purrr)
 list.files2 <- Vectorize(FUN = list.files, vectorize.args = 'pattern')
 
 # Setup table
-scenario <- 'historical' # historical, future
+scenario <- 'future' # historical, future
 gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
 if (scenario == 'future') {
   ssps <- c('ssp126','ssp245','ssp370','ssp585')
