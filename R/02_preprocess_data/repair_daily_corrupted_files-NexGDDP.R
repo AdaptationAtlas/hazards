@@ -29,7 +29,7 @@ crr_dte <- gsub(paste0(crr_var,'_'), '', crr_dte)
 crr_dte <- gsub('.tif', '', crr_dte)
 
 dte <- as.Date(crr_dte)
-raw_pth <- paste0('~/common_data/nex-gddp-cmip6_raw/hurs/',crr_ssp,'/',crr_gcm)
+raw_pth <- paste0('~/common_data/nex-gddp-cmip6_raw/',crr_var,'/',crr_ssp,'/',crr_gcm)
 raw_fls <- list.files(path = raw_pth, pattern = '.nc$', full.names = T, recursive = F)
 raw_fle <- raw_fls[grep(lubridate::year(dte), raw_fls)]
 
