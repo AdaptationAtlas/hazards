@@ -36,6 +36,7 @@ indices <- c('TAVG','TMAX','TMIN','PTOT',
              'NDD',paste0('NTx',20:50),'NDWL0','NDWL50','NDWS',
              'TAI','HSH','THI')
 
+# Applying QAQC tool to all folders
 dfm_qaqc <- purrr::map(.x = indices, .f = function(index) {
   
   cat('.... Validating files for index:',index,'\n')
@@ -70,6 +71,7 @@ dfm_qaqc <- purrr::map(.x = indices, .f = function(index) {
   
 }) |> dplyr::bind_rows()
 
+# Counting of number of files
 summary(
   table(
     dfm_qaqc$folder[!(dfm_qaqc$index %in% c('TAI','HSH','THI'))]
@@ -88,7 +90,20 @@ summary(
   ) |> as.numeric()
 )
 
+# Verifying if there are corrupted files
 table(dfm_qaqc$folder[is.na(dfm_qaqc$mean)]) |> sort(decreasing = T)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
