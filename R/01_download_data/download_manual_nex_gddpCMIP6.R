@@ -35,7 +35,7 @@ if (scenario == 'future') {
 } else {
   if (scenario == 'historical') {
     ssps <- 'historical'
-    yrs <- 1981:1994
+    yrs <- 1981:1994 # 1995:2014
   }
 }
 
