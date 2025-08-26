@@ -35,7 +35,7 @@ if (scenario == 'future') {
 } else {
   if (scenario == 'historical') {
     ssps <- 'historical'
-    yrs <- 1995:2014
+    yrs <- 1981:1994
   }
 }
 
@@ -49,7 +49,7 @@ if (scenario == 'future') {
   outfile <- file.path(wd,'cmip6_future_files_to_download.csv')
 } else {
   if (scenario == 'historical') {
-    outfile <- file.path(wd,'cmip6_baseline_files_to_download.csv')
+    outfile <- file.path(wd,'cmip6_short-baseline_files_to_download.csv')
   }
 }
 if(!file.exists(outfile)) {
