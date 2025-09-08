@@ -62,7 +62,7 @@ if (scenario == 'future') {
 } else {
   if (scenario == 'historical') {
     ssps <- 'historical'
-    yrs <- 1995:2014
+    yrs <- 1981:1994 # 1995:2014
   }
 }
 gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')

@@ -10,7 +10,7 @@ pacman::p_load(terra, tidyverse, FactoMineR, arrow)
 list.files2 <- Vectorize(FUN = list.files, vectorize.args = 'pattern')
 
 # Setup table
-scenario <- 'future' # historical, future
+scenario <- 'historical' # historical, future
 gcms <- c('ACCESS-CM2','ACCESS-ESM1-5','CanESM5','CMCC-ESM2','EC-Earth3','EC-Earth3-Veg-LR','GFDL-ESM4','INM-CM4-8','INM-CM5-0','IPSL-CM6A-LR','KACE-1-0-G','MIROC6','MPI-ESM1-2-HR','MPI-ESM1-2-LR','MRI-ESM2-0','NorESM2-LM','NorESM2-MM','TaiESM1')
 if (scenario == 'future') {
   ssps <- c('ssp126','ssp245','ssp370','ssp585')
@@ -24,7 +24,7 @@ if (scenario == 'future') {
     ssps <- 'historical'
     stp_tbl <- expand.grid(ssp = ssps, gcm = gcms, stringsAsFactors = F) |> base::as.data.frame() |> dplyr::arrange(gcm, ssp)
     stp_tbl$folder <- paste0(stp_tbl$ssp,'_',stp_tbl$gcm)
-    stp_tbl$ini_year <- 1995
+    stp_tbl$ini_year <- 1981 # 1995
     stp_tbl$end_year <- 2014
   }
 }
@@ -70,6 +70,15 @@ dfm_qaqc <- purrr::map(.x = indices, .f = function(index) {
   return(dfm_qaqc)
   
 }) |> dplyr::bind_rows()
+
+pca.res <- dfm_qaqc |>
+  dplyr::filter(index == 'PTOT') |>
+  dplyr::select(mean, min, max, stdev, q1, median, q3) |> FactoMineR::PCA(scale.unit = T, ncp = 7, graph = T)
+
+ptot_issue <- dfm_qaqc |>
+  dplyr::filter(index == 'PTOT')
+
+ptot_issue$folder[which.max(ptot_issue$max)]
 
 # Counting of number of files
 summary(

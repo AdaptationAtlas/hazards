@@ -17,7 +17,7 @@ urlFileExist <- function(url){
   list(exists = status == HTTP_STATUS_OK)
 }
 
-scenario <- 'historical'
+scenario <- 'future' # historical, future
 
 # # Available files to download
 # fls <- readLines('https://nex-gddp-cmip6.s3-us-west-2.amazonaws.com/index_v1.1_md5.txt')
