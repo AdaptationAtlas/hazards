@@ -70,6 +70,48 @@ pca.res <- dfm_qaqc |>
   dplyr::filter(index == 'PTOT') |>
   dplyr::select(mean, min, max, stdev, q1, median, q3) |> FactoMineR::PCA(scale.unit = T, ncp = 7, graph = T)
 
+hist(dfm_qaqc$max)
+
+# v2.0
+dfm_qaqc$gcm <- strsplit(x = dfm_qaqc$folder, split = '/') |> purrr::map(8) |> unlist()
+dfm_qaqc$date <- dfm_qaqc$file |> gsub(pattern = 'pr2_', replacement = '', x = _) |> gsub(pattern = '.tif', replacement = '', x = _) |> as.Date()
+dfm_qaqc$year <- lubridate::year(dfm_qaqc$date)
+dfm_qaqc$month <- lubridate::month(dfm_qaqc$date)
+dfm_qaqc$day <- lubridate::day(dfm_qaqc$date)
+
+quantile(x = dfm_qaqc$max, probs = seq(0.9, 1, 0.01))
+
+dfm_qaqc |>
+  dplyr::filter(max > 400) |>
+  dplyr::group_by(gcm, year, month) |>
+  dplyr::summarise(count = n()) |>
+  ggplot2::ggplot(aes(x = year, y = count)) +
+  ggplot2::geom_bar(stat = 'identity') +
+  ggplot2::coord_flip() +
+  ggplot2::facet_grid(month ~ gcm) +
+  ggplot2::theme_minimal()
+
+# v1.1 / v1.2
+dfm_qaqc_old$gcm <- strsplit(x = dfm_qaqc_old$folder, split = '/') |> purrr::map(8) |> unlist()
+dfm_qaqc_old$date <- dfm_qaqc_old$file |> gsub(pattern = 'pr_', replacement = '', x = _) |> gsub(pattern = '.tif', replacement = '', x = _) |> as.Date()
+dfm_qaqc_old$year <- lubridate::year(dfm_qaqc_old$date)
+dfm_qaqc_old$month <- lubridate::month(dfm_qaqc_old$date)
+dfm_qaqc_old$day <- lubridate::day(dfm_qaqc_old$date)
+
+quantile(x = dfm_qaqc_old$max, probs = seq(0.9, 1, 0.01))
+
+dfm_qaqc_old |>
+  dplyr::filter(max > 400) |>
+  dplyr::group_by(gcm, year, month) |>
+  dplyr::summarise(count = n()) |>
+  ggplot2::ggplot(aes(x = year, y = count)) + # reorder(year, count)
+  ggplot2::geom_bar(stat = 'identity') +
+  ggplot2::coord_flip() +
+  ggplot2::facet_grid(month ~ gcm) +
+  ggplot2::theme_minimal()
+
+strsplit(x = dfm_qaqc$file[1:4], split = '-') |> purrr::map(2) |> unlist()
+
 ptot_issue <- dfm_qaqc |>
   dplyr::filter(index == 'PTOT')
 
@@ -96,6 +138,10 @@ summary(
 
 # Verifying if there are corrupted files
 table(dfm_qaqc$folder[is.na(dfm_qaqc$mean)]) |> sort(decreasing = T)
+
+quantile(x = dfm_qaqc$max, probs = seq(0.9, 1, 0.01))
+quantile(x = dfm_qaqc_old$max, probs = seq(0.9, 1, 0.01))
+
 
 
 # 

@@ -22,7 +22,7 @@ root <- '/home/jovyan/common_data'
 get_daily_data <- function (vr, ssp, gcm) {
   
   # Input directory
-  indir <- file.path(root,'nex-gddp-cmip6_raw',vr,ssp,gcm)
+  indir <- file.path('/home/jovyan/shared-data-premium/nex-gddp-cmip6_raw',vr,ssp,gcm)
   # Output directory
   outdir <- file.path(root,'nex-gddp-cmip6',vr,ssp,gcm)
   dir.create(path = outdir, F, recursive = T)
@@ -88,7 +88,7 @@ get_daily_data <- function (vr, ssp, gcm) {
   
 }
 
-scenario <- 'historical'
+scenario <- 'future'
 
 if (scenario == 'future'){
   ssps <- c('ssp126','ssp245','ssp370','ssp585')
