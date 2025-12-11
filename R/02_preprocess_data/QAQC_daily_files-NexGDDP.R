@@ -66,6 +66,31 @@ dfm_qaqc <- purrr::map(.x = vrs, .f = function(index) {
   
 }) |> dplyr::bind_rows()
 
+idx = 'pr'
+# Perform PCA
+pca.res <- dfm_qaqc |>
+  dplyr::filter(index == idx) |>
+  dplyr::select(mean, min, max, stdev, q1, median, q3) |> FactoMineR::PCA(scale.unit = T, ncp = 7, graph = F)
+# Get minimum and maximum's distributions
+hist(dfm_qaqc$min[dfm_qaqc$index == idx])
+hist(dfm_qaqc$max[dfm_qaqc$index == idx])
+plot(pca.res, choix = 'ind')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pca.res <- dfm_qaqc |>
   dplyr::filter(index == 'PTOT') |>
   dplyr::select(mean, min, max, stdev, q1, median, q3) |> FactoMineR::PCA(scale.unit = T, ncp = 7, graph = T)

@@ -17,7 +17,7 @@ urlFileExist <- function(url){
   list(exists = status == HTTP_STATUS_OK)
 }
 
-scenario <- 'future' # historical, future
+scenario <- 'historical' # historical, future
 
 # # Available files to download
 # fls <- readLines('https://nex-gddp-cmip6.s3-us-west-2.amazonaws.com/index_v1.1_md5.txt')
@@ -35,7 +35,7 @@ if (scenario == 'future') {
 } else {
   if (scenario == 'historical') {
     ssps <- 'historical'
-    yrs <- 1981:1994 # 1995:2014
+    yrs <- 1975:1980 # 1981:1994, 1995:2014
   }
 }
 
