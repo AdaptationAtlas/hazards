@@ -16,13 +16,15 @@ gcm_list <- c("CMIP6_ACCESS-ESM1-5",
               "CMIP6_MRI-ESM2-0")
 
 #list of scenarios
-sce_list <- c("historical" , "ssp245", "ssp585")
+sce_list <- c("historical","ssp126","ssp245","ssp370","ssp585")
 
 #periods
-period_list <- c("hist", "near", "mid")
+period_list <- c("hist","near","mid","far","end")
 
 #indices
-indx_list <- c("NDD", "NTx40", "NTx35", "HSM_NTx35", "HSH", "NDWS", "NDWL50", "NDWL0", "THI", "TAI")
+indx_list <- c('TAVG','TMAX','TMIN','PTOT',
+               'NDD',paste0('NTx',20:50),'NDWL0','NDWL50','NDWS',
+               'TAI','HSH','THI') # To ask: "HSM_NTx35"
 
 #load all masks
 r_ref <- terra::rast(paste0(wd, "/roi/africa.tif")) # Africa base mask
@@ -43,12 +45,14 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
   
   #some consistency checks
   if (scenario == "historical" & period != "hist") {stop("error, historical scenario should go with hist period")}
-  if (scenario %in% c("ssp245", "ssp585") & !period %in% c("near", "mid")) {stop("error, use near or mid, for ssp scenarios")}
+  if (scenario %in% c("ssp126","ssp245","ssp370","ssp585") & !period %in% c("near","mid","far","end")) {stop("error, use near or mid, for ssp scenarios")}
   
   #assign periods
   if (period == "hist") {years <- 1995:2014}
   if (period == "near") {years <- 2021:2040}
   if (period == "mid") {years <- 2041:2060}
+  if (period == "far") {years <- 2061:2080}
+  if (period == "end") {years <- 2081:2100}
   
   #list of folders to go through (1 for hist, 5 GCMs for future)
   #note folder structure
@@ -65,7 +69,7 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
   }
   
   #if doensemble then create empty vectors to store the rasters
-  if (doensemble & scenario %in% c("ssp245", "ssp585")) {
+  if (doensemble & scenario %in% c("ssp126","ssp245","ssp370","ssp585")) {
     if (domean) {ens_meanmonth <- ens_meanmonthk <- ens_meanyr <- ens_meanyrk <- c()}
     if (domedian) {ens_emonth <- ens_emonthk <- ens_medianyr <- ens_medianyrk <- c()}
     if (domax) {ens_xmonth <- ens_xmonthk <- ens_max <- ens_maxk <- c()}
@@ -135,7 +139,7 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
           terra::mask(., r_ref) %>%
           terra::mask(., r_wbd, inverse=TRUE)
         if (index == "THI") {r_monthk <- terra::mask(r_monthk, r_lstk)}
-        if (index %in% c("HSM_NTx35", "NTx35")) {r_monthk <- terra::mask(r_monthk, r_crop)}
+        if (index %in% c("HSM_NTx35",paste0('NTx',20:50))) {r_monthk <- terra::mask(r_monthk, r_crop)}
         if (index == "HSH") {r_monthk <- terra::mask(r_monthk, r_pop)}
         terra::writeRaster(r_monthk, filename=paste0(out_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
         
@@ -158,12 +162,12 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
         terra::mask(., r_ref) %>%
         terra::mask(., r_wbd, inverse=TRUE)
       if (index == "THI") {r_meank <- terra::mask(r_meank, r_lstk)}
-      if (index %in% c("HSM_NTx35", "NTx35")) {r_meank <- terra::mask(r_meank, r_crop)}
+      if (index %in% c("HSM_NTx35",paste0('NTx',20:50))) {r_meank <- terra::mask(r_meank, r_crop)}
       if (index == "HSH") {r_meank <- terra::mask(r_meank, r_pop)}
       terra::writeRaster(r_meank, filename=paste0(out_dir, "/mean_year_masked.tif"), overwrite=TRUE)
       
       #do ensemble
-      if (doensemble & scenario %in% c("ssp245", "ssp585")) {
+      if (doensemble & scenario %in% c("ssp126","ssp245","ssp370","ssp585")) {
         if (index != "TAI") {
           ens_meanmonth <- c(ens_meanmonth, r_month) 
           ens_meanmonthk <- c(ens_meanmonthk, r_monthk)
@@ -188,7 +192,7 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
           terra::mask(., r_ref) %>%
           terra::mask(., r_wbd, inverse=TRUE)
         if (index == "THI") {r_emonthk <- terra::mask(r_emonthk, r_lstk)}
-        if (index %in% c("HSM_NTx35", "NTx35")) {r_emonthk <- terra::mask(r_emonthk, r_crop)}
+        if (index %in% c("HSM_NTx35",paste0('NTx',20:50))) {r_emonthk <- terra::mask(r_emonthk, r_crop)}
         if (index == "HSH") {r_emonthk <- terra::mask(r_emonthk, r_pop)}
         terra::writeRaster(r_emonthk, filename=paste0(out_dir, "/median_monthly_masked.tif"), overwrite=TRUE)
       } else {
@@ -200,12 +204,12 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
         terra::mask(., r_ref) %>%
         terra::mask(., r_wbd, inverse=TRUE)
       if (index == "THI") {r_mediank <- terra::mask(r_mediank, r_lstk)}
-      if (index %in% c("HSM_NTx35", "NTx35")) {r_mediank <- terra::mask(r_mediank, r_crop)}
+      if (index %in% c("HSM_NTx35",paste0('NTx',20:50))) {r_mediank <- terra::mask(r_mediank, r_crop)}
       if (index == "HSH") {r_mediank <- terra::mask(r_mediank, r_pop)}
       terra::writeRaster(r_mediank, filename=paste0(out_dir, "/median_year_masked.tif"), overwrite=TRUE)
       
       #do ensemble
-      if (doensemble & scenario %in% c("ssp245", "ssp585")) {
+      if (doensemble & scenario %in% c("ssp126","ssp245","ssp370","ssp585")) {
         if (index != "TAI") {
           ens_emonth <- c(ens_emonth, r_emonth)
           ens_emonthk <- c(ens_emonthk, r_emonthk)
@@ -227,7 +231,7 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
           terra::mask(., r_ref) %>%
           terra::mask(., r_wbd, inverse=TRUE)
         if (index == "THI") {r_xmonthk <- terra::mask(r_xmonthk, r_lstk)}
-        if (index %in% c("HSM_NTx35", "NTx35")) {r_xmonthk <- terra::mask(r_xmonthk, r_crop)}
+        if (index %in% c("HSM_NTx35",paste0('NTx',20:50))) {r_xmonthk <- terra::mask(r_xmonthk, r_crop)}
         if (index == "HSH") {r_xmonthk <- terra::mask(r_xmonthk, r_pop)}
         terra::writeRaster(r_xmonthk, filename=paste0(out_dir, "/mean_monthly_masked.tif"), overwrite=TRUE)
       } else {
@@ -243,12 +247,12 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
         terra::mask(., r_ref) %>%
         terra::mask(., r_wbd, inverse=TRUE)
       if (index == "THI") {r_maxk <- terra::mask(r_maxk, r_lstk)}
-      if (index %in% c("HSM_NTx35", "NTx35")) {r_maxk <- terra::mask(r_maxk, r_crop)}
+      if (index %in% c("HSM_NTx35",paste0('NTx',20:50))) {r_maxk <- terra::mask(r_maxk, r_crop)}
       if (index == "HSH") {r_maxk <- terra::mask(r_maxk, r_pop)}
       terra::writeRaster(r_maxk, filename=paste0(out_dir, "/max_year_masked.tif"), overwrite=TRUE)
       
       #do ensemble
-      if (doensemble & scenario %in% c("ssp245", "ssp585")) {
+      if (doensemble & scenario %in% c("ssp126","ssp245","ssp370","ssp585")) {
         ens_xmonth <- c(ens_xmonth, r_xmonth)
         ens_xmonthk <- c(ens_xmonthk, r_xmonthk)
         ens_max <- c(ens_max, r_max)
@@ -259,7 +263,7 @@ continuous_map <- function(index="NDD", HS.stat=NULL, period="hist", scenario="h
   
   ###
   #calculate ensemble
-  if (scenario %in% c("ssp245", "ssp585") & doensemble) {
+  if (scenario %in% c("ssp126","ssp245","ssp370","ssp585") & doensemble) {
     cat("calculating ensemble \n")
     #output folder for ensemble calculation
     ens_dir <- paste0(wd, "/cmip6/indices/", scenario, "_ENSEMBLE_", min(years), "_", max(years), "/", index)
