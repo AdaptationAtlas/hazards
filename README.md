@@ -1,5 +1,7 @@
 # Adaptation atlas hazards data generation scripts
 
+[![DOI](https://zenodo.org/badge/DOI/10.5282/zenodo.18164182.svg)](https://doi.org/10.5281/zenodo.18164182)
+
 Scripts for processing of historical and future hazards data. For more information see the [wiki](https://github.com/AdaptationAtlas/hazards/wiki).
 
 **Updates: July, 2025**
